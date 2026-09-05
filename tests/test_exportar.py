@@ -98,7 +98,7 @@ def test_el_pdf_de_un_resultado_sin_notas_tambien_se_genera(tmp_path):
 def test_el_pdf_aguanta_titulos_fuera_de_latin1(tmp_path):
     base = _resultado()
     raro = Resultado(
-        fragmento=Fragmento(titulo='Huayno ♪ – "en vivo" 山', fuente="youtube",
+        fragmento=Fragmento(titulo="Huayno ♪ – “en vivo” 山", fuente="youtube",
                             referencia=base.fragmento.referencia, inicio_s=30.0, fin_s=90.0),
         analisis=base.analisis, frases=base.frases, archivos={},
         avisos=("aviso con ♪",),

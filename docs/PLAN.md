@@ -2286,6 +2286,18 @@ def test_un_exportador_que_falla_deja_aviso_y_no_tumba_el_analisis(
     assert "pdf" not in resultado.archivos
     assert "midi" in resultado.archivos
     assert any("PDF" in aviso for aviso in resultado.avisos)
+
+
+def test_si_no_se_puede_crear_la_carpeta_de_salida_se_avisa_y_se_conservan_las_notas(
+    recorte, detector_falso
+):
+    # Una carpeta "dentro" de un archivo no se puede crear: mkdir lanza OSError.
+    resultado = pipeline.analizar_recorte(
+        recorte, _fragmento(), separar=False, salidas_en=recorte / "salidas"
+    )
+    assert [nota.nombre for nota in resultado.notas] == ["A4", "B4"]
+    assert set(resultado.archivos) == {"mezcla_wav"}
+    assert any("carpeta" in aviso.lower() for aviso in resultado.avisos)
 ```
 
 Añadir al principio del mismo archivo: `from pathlib import Path`
@@ -2340,11 +2352,22 @@ Y sustituir el `return` final por:
 
     _avisar(progreso, "Generando los archivos de salida")
     salidas = Path(salidas_en)
-    salidas.mkdir(parents=True, exist_ok=True)
     archivos = {"mezcla_wav": str(ruta_wav)}
     if melodia_wav is not None:
         archivos["melodia_wav"] = str(melodia_wav)
     avisos_salida = []
+    try:
+        salidas.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        # Sin carpeta no hay dónde escribir, pero las notas ya están: se devuelven.
+        return Resultado(
+            fragmento=resultado.fragmento,
+            analisis=resultado.analisis,
+            frases=resultado.frases,
+            archivos=archivos,
+            avisos=resultado.avisos
+            + (f"No se pudo crear la carpeta de salida ({error}); no se generaron archivos.",),
+        )
 
     def intentar(clave, etiqueta, generar):
         """Un archivo que falla se omite con aviso; nunca tumba el resultado."""

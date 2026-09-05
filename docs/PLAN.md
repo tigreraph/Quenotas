@@ -5141,6 +5141,22 @@ No forma parte de la primera versión. Se decide después de usar el sistema uno
 
 ---
 
+## Correcciones tras la revisión final (2026-09-05)
+
+Ronda única de arreglos aplicada tras la revisión final, sobre el código ya terminado de las tareas 1 a 20. Cada punto describe qué archivo cambió y qué se corrigió respecto al bloque de código de la tarea correspondiente; los bloques de código de las tareas no se reescribieron.
+
+- **`web/static/pianoroll.js` (tarea 18):** el `select` de velocidad se crea antes que el `forEach` de pistas (no después), y el manejador `change` del selector de pista, dentro de su callback `loadedmetadata`, ahora también asigna `reproductor.playbackRate = Number(velocidad.value)`. Antes, cambiar de pista restablecía la velocidad a 1 porque asignar `reproductor.src` reinicia `playbackRate`.
+- **`web/transcripciones/templates/transcripciones/resultado.html` (tarea 16):** se añadió un `<p class="limitacion">` estático, fuera del `{% if fragmento.avisos %}`, con el aviso de que dos notas iguales seguidas pueden salir como una sola nota larga (sección 14 del diseño). En `web/static/estilo.css` se añadió la regla `.limitacion`.
+- **`web/transcripciones/views.py` (tarea 15):** `analizar` y `reintentar` ya no leen `fragmento.estado` en Python y después lanzan el hilo; ahora usan `Fragmento.objects.filter(pk=pk, estado=<esperado>).update(...)` y solo lanzan el trabajo si `update()` devolvió filas afectadas. Antes, dos peticiones simultáneas (o un doble clic) podían lanzar el mismo análisis dos veces porque la comprobación de estado y el cambio de estado no eran atómicos.
+- **`web/transcripciones/templates/transcripciones/index.html` (tarea 15):** la casilla `separar` pasó de `checked` fijo a `{% if formulario.separar.value or not formulario.is_bound %}checked{% endif %}`, para que un reenvío con error de validación no la muestre marcada si el usuario la había desmarcado.
+- **`iniciar.bat` (tarea 20):** la línea que imprime la IP para el teléfono ahora encadena un segundo `for /f "tokens=1"` que recorta el espacio inicial que deja `tokens=2 delims=:` sobre la salida de `ipconfig`; antes la URL salía como `http:// 192.168...`. Además, tras `migrate` se comprueba `errorlevel 1` y se corta con un mensaje y `pause` si falla, y se añadió un `pause` final tras `runserver` para que la ventana no se cierre sola si el servidor termina con error.
+- **`web/transcripciones/templates/transcripciones/resultado.html` (tarea 16):** cada enlace de descarga (MIDI, TXT, PDF) quedó condicionado a `{% if fragmento.archivos.<clave> %}`; antes se mostraban los tres aunque el archivo no existiera (por ejemplo, si la generación del PDF había fallado), y el enlace llevaba a un 404.
+- **`motor/pipeline.py`, `_separar_con_respaldo` (tarea 11):** se guarda `reintento_cpu = True` en el `except` cuando falla por falta de memoria en CUDA, y el aviso de "corrió en CPU" se añade en el camino de éxito (`if actual == "cpu" and reintento_cpu`), no en el momento del fallo. Antes el aviso se añadía apenas fallaba CUDA, así que aparecía incluso cuando el reintento en CPU también fallaba y no se separó nada.
+- **`motor/pipeline.py` (tarea 11):** el umbral `0.65` de la comparación de confianza media quedó nombrado como constante de módulo `CONFIANZA_MEDIA_AVISO`, junto a `AFINACION_AVISO_CENTS`.
+- **`motor/pipeline.py`, sonificación dentro de `analizar_recorte` (tarea 11):** el tercer argumento de `sonificar(...)` pasó de `fragmento.fin_s - fragmento.inicio_s` a `fragmento.duracion_s`, la propiedad ya provista por el contrato.
+- **`motor/audio.py`, `_ejecutar` (tarea 4):** el mensaje de reserva cuando `stderr` viene vacío pasó de `"ffmpeg falló sin mensaje"` a `f"{comando[0]} falló sin mensaje"`, porque `_ejecutar` también se usa para `ffprobe`.
+- **`docs/PLAN.md` y `CLAUDE.md`:** esta sección, y en `CLAUDE.md` tres líneas nuevas bajo "Estado" sobre la limpieza pendiente de `media/fragmentos/`, el soporte de `Range` en iPhone/Safari, y que los archivos subidos todavía no se reutilizan entre fragmentos.
+
 ## Revisión del plan contra el diseño
 
 Comprobación hecha al terminar de escribir, sección por sección del diseño:

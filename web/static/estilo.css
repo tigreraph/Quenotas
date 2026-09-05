@@ -58,3 +58,4 @@ audio { width: 100%; margin: 1rem 0; }
 h2.frase { cursor: pointer; }
 h2.frase.en-bucle::after { content: "  (en bucle, clic para parar)"; color: var(--acento); font-weight: normal; font-size: 0.85rem; }
 .estado { color: var(--tenue); font-size: 0.85rem; }
+.limitacion { color: var(--tenue); font-size: 0.9rem; }

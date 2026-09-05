@@ -232,6 +232,24 @@ def test_sin_memoria_de_video_la_separacion_reintenta_en_cpu(monkeypatch, cancio
     assert any("cpu" in aviso.lower() for aviso in resultado.avisos)
 
 
+def test_si_tambien_falla_en_cpu_no_se_avisa_que_corrio_en_cpu(monkeypatch, cancion_larga,
+                                                                detector_falso, tmp_path):
+    def separar(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs", segmento=None):
+        if dispositivo == "cuda":
+            raise modulo_separacion.ErrorSeparacion("La separación falló: CUDA out of memory")
+        raise modulo_separacion.ErrorSeparacion("modelo corrupto")
+
+    monkeypatch.setattr(modulo_separacion, "separar_melodia", separar)
+    monkeypatch.setattr(pipeline, "resolver_dispositivo", lambda preferencia: "cuda")
+    resultado = pipeline.analizar_fuente(
+        cancion_larga, inicio_s=1.0, fin_s=2.8,
+        directorio_trabajo=tmp_path / "trabajo", separar=True,
+    )
+    assert resultado.analisis.separacion == "ninguna"
+    assert not any("corrió en cpu" in aviso.lower() for aviso in resultado.avisos)
+    assert any("separación falló" in aviso.lower() for aviso in resultado.avisos)
+
+
 def test_si_la_separacion_falla_sigue_con_la_mezcla_y_avisa(monkeypatch, cancion_larga,
                                                             detector_falso, tmp_path):
     def revienta(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs", segmento=None):

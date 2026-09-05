@@ -25,7 +25,7 @@
                         value="{{ formulario.fin.value|default:'' }}"></label>
   </div>
   <label class="casilla">
-    <input type="checkbox" name="separar" checked>
+    <input type="checkbox" name="separar" {% if formulario.separar.value or not formulario.is_bound %}checked{% endif %}>
     Separar la melodía de la banda (desmarca si el audio ya es solo el instrumento)
   </label>
   <button type="submit">Obtener el fragmento</button>

@@ -75,8 +75,14 @@ def estado(request, pk):
 
 @require_POST
 def analizar(request, pk):
+    # Actualización atómica condicionada: dos peticiones simultáneas solo
+    # consiguen que una de ellas lance el análisis (evita la carrera y el
+    # doble lanzamiento de dos POST seguidos).
     fragmento = get_object_or_404(Fragmento, pk=pk)
-    if fragmento.estado == Fragmento.PREPARADO:
+    actualizados = Fragmento.objects.filter(pk=pk, estado=Fragmento.PREPARADO).update(
+        estado=Fragmento.PROCESANDO, paso="En cola", mensaje=""
+    )
+    if actualizados:
         trabajos.lanzar_analisis(fragmento.pk)
     return redirect("detalle", pk=pk)
 
@@ -85,13 +91,17 @@ def analizar(request, pk):
 def reintentar(request, pk):
     """Desde error: si ya hay recorte, vuelve a analizar; si no, vuelve a preparar."""
     fragmento = get_object_or_404(Fragmento, pk=pk)
-    if fragmento.estado == Fragmento.ERROR:
-        if fragmento.archivos.get("mezcla_wav"):
-            fragmento.estado = Fragmento.PREPARADO
-            fragmento.mensaje = ""
-            fragmento.save(update_fields=["estado", "mensaje"])
+    if fragmento.archivos.get("mezcla_wav"):
+        actualizados = Fragmento.objects.filter(pk=pk, estado=Fragmento.ERROR).update(
+            estado=Fragmento.PROCESANDO, paso="En cola", mensaje=""
+        )
+        if actualizados:
             trabajos.lanzar_analisis(fragmento.pk)
-        else:
+    else:
+        actualizados = Fragmento.objects.filter(pk=pk, estado=Fragmento.ERROR).update(
+            estado=Fragmento.PREPARANDO, paso="Preparando", mensaje=""
+        )
+        if actualizados:
             trabajos.lanzar_preparacion(fragmento.pk, fragmento.origen)
     return redirect("detalle", pk=pk)
 

@@ -22,6 +22,7 @@ from motor.audio import recortar
 _DETECTAR = detectar_afinacion
 
 AFINACION_AVISO_CENTS = 30
+CONFIANZA_MEDIA_AVISO = 0.65
 
 
 class ErrorPipeline(Exception):
@@ -87,7 +88,7 @@ def analizar_recorte(
             "No se detectó ninguna melodía con confianza suficiente. Es probable "
             "que en este rango el instrumento no toque o no destaque sobre la banda."
         )
-    elif sum(nota.confianza for nota in notas) / len(notas) < 0.65:
+    elif sum(nota.confianza for nota in notas) / len(notas) < CONFIANZA_MEDIA_AVISO:
         avisos.append(
             "La confianza media es baja. Revisa las notas al oído antes de darlas "
             "por buenas, o prueba con otro rango donde la melodía destaque más."
@@ -147,7 +148,7 @@ def analizar_recorte(
 
     intentar("notas_wav", "audio de notas",
              lambda: sonificar(resultado.frases, salidas / "notas.wav",
-                                fragmento.fin_s - fragmento.inicio_s))
+                                fragmento.duracion_s))
     intentar("midi", "MIDI", lambda: a_midi(resultado.frases, salidas / "melodia.mid"))
     intentar("txt", "TXT", lambda: a_txt(resultado, salidas / "notas.txt"))
     intentar("pdf", "PDF", lambda: a_pdf(resultado, salidas / "notas.pdf"))
@@ -213,6 +214,7 @@ def _separar_con_respaldo(recorte, trabajo, config, progreso):
     dispositivo = resolver_dispositivo(config.dispositivo)
     intentos = [dispositivo] + (["cpu"] if dispositivo == "cuda" else [])
     ultimo_error = None
+    reintento_cpu = False
     for indice, actual in enumerate(intentos):
         _avisar(progreso, "Separando la pista melódica"
                 + (" (en CPU, tarda más)" if indice > 0 else ""))
@@ -227,13 +229,17 @@ def _separar_con_respaldo(recorte, trabajo, config, progreso):
         except modulo_separacion.ErrorSeparacion as error:
             ultimo_error = error
             if actual == "cuda" and error.sin_memoria:
+                reintento_cpu = True
+                continue
+            break
+        else:
+            # El aviso de "corrió en CPU" solo tiene sentido si el reintento
+            # en CPU tuvo éxito; si CUDA no falló, no hubo reintento.
+            if actual == "cpu" and reintento_cpu:
                 avisos.append(
                     "La tarjeta de video se quedó sin memoria; la separación "
                     "corrió en CPU y tardó más."
                 )
-                continue
-            break
-        else:
             return melodia, avisos
     avisos.append(
         f"La separación falló y se analizó la mezcla completa ({ultimo_error}). "

@@ -28,31 +28,10 @@
     etiqueta.className = "nota-actual";
     contenedor.append(canvas, reproductor, pie, controles, etiqueta);
 
-    // Selector de pista. La posición se restablece cuando la pista nueva ya
-    // cargó su metadata: asignar currentTime antes de eso se ignora.
-    datos.pistas.forEach((pista, indice) => {
-      const opcion = document.createElement("label");
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = "pista";
-      radio.value = pista.url;
-      radio.checked = indice === 0;
-      radio.addEventListener("change", () => {
-        const instante = reproductor.currentTime;
-        const sonando = !reproductor.paused;
-        reproductor.addEventListener("loadedmetadata", () => {
-          reproductor.currentTime = instante;
-          if (sonando) reproductor.play();
-        }, { once: true });
-        reproductor.src = pista.url;
-      });
-      opcion.append(radio, document.createTextNode(" " + pista.etiqueta));
-      pie.append(opcion);
-    });
-    if (datos.pistas.length) reproductor.src = datos.pistas[0].url;
-
     // Velocidad sin cambiar el tono: para sacar de oído, escuchar a la mitad
     // es lo que más ayuda. preservesPitch viene activo en los navegadores.
+    // Se crea antes que el selector de pista porque el cambio de pista
+    // necesita leer velocidad.value para no perder la velocidad elegida.
     const velocidad = document.createElement("select");
     VELOCIDADES.forEach((valor) => {
       const opcion = document.createElement("option");
@@ -67,6 +46,30 @@
     const etiquetaVelocidad = document.createElement("label");
     etiquetaVelocidad.append(document.createTextNode("Velocidad "), velocidad);
     controles.append(etiquetaVelocidad);
+
+    // Selector de pista. La posición y la velocidad se restablecen cuando la
+    // pista nueva ya cargó su metadata: asignarlas antes de eso se ignora.
+    datos.pistas.forEach((pista, indice) => {
+      const opcion = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "pista";
+      radio.value = pista.url;
+      radio.checked = indice === 0;
+      radio.addEventListener("change", () => {
+        const instante = reproductor.currentTime;
+        const sonando = !reproductor.paused;
+        reproductor.addEventListener("loadedmetadata", () => {
+          reproductor.currentTime = instante;
+          reproductor.playbackRate = Number(velocidad.value);
+          if (sonando) reproductor.play();
+        }, { once: true });
+        reproductor.src = pista.url;
+      });
+      opcion.append(radio, document.createTextNode(" " + pista.etiqueta));
+      pie.append(opcion);
+    });
+    if (datos.pistas.length) reproductor.src = datos.pistas[0].url;
 
     // Bucle por frase: clic en "Frase N" repite ese tramo; otro clic lo quita.
     let bucle = null;

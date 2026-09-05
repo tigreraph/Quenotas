@@ -28,7 +28,7 @@ def _ejecutar(comando):
         raise ErrorAudio(f"no se encontró el programa {comando[0]}") from error
     except subprocess.CalledProcessError as error:
         detalle = (error.stderr or "").strip().splitlines()
-        raise ErrorAudio(detalle[-1] if detalle else "ffmpeg falló sin mensaje") from error
+        raise ErrorAudio(detalle[-1] if detalle else f"{comando[0]} falló sin mensaje") from error
 
 
 def duracion_s(ruta) -> float:

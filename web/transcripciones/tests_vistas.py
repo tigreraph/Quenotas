@@ -83,6 +83,18 @@ class PruebaVistas(TestCase):
             lanzar.assert_called_once_with(self.fragmento.pk)
         assert respuesta.status_code == 302
 
+    def test_analizar_deja_el_fragmento_procesando_y_no_se_lanza_dos_veces(self):
+        self.fragmento.estado = Fragmento.PREPARADO
+        self.fragmento.archivos = {"mezcla_wav": "media/x.wav"}
+        self.fragmento.save()
+        with patch("transcripciones.views.trabajos.lanzar_analisis") as lanzar:
+            self.client.post(reverse("analizar", args=[self.fragmento.pk]))
+            self.client.post(reverse("analizar", args=[self.fragmento.pk]))
+            lanzar.assert_called_once()
+        self.fragmento.refresh_from_db()
+        assert self.fragmento.estado == Fragmento.PROCESANDO
+        assert self.fragmento.paso == "En cola"
+
     def test_el_detalle_muestra_el_reproductor_cuando_esta_preparado(self):
         self.fragmento.estado = Fragmento.PREPARADO
         self.fragmento.archivos = {"mezcla_wav": "media/x.wav"}
@@ -116,7 +128,7 @@ class PruebaVistas(TestCase):
         lanzar.assert_called_once_with(self.fragmento.pk)
         assert respuesta.status_code == 302
         self.fragmento.refresh_from_db()
-        assert self.fragmento.estado == Fragmento.PREPARADO
+        assert self.fragmento.estado == Fragmento.PROCESANDO
 
     def test_reintentar_relanza_la_preparacion_si_no_hay_recorte(self):
         self.fragmento.estado = Fragmento.ERROR
@@ -153,6 +165,29 @@ class PruebaVistas(TestCase):
         self._dejar_listo()
         contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
         assert "confianza media es baja".encode() in contenido
+
+    def test_el_resultado_avisa_de_las_notas_repetidas(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
+        assert "una sola nota larga".encode() in contenido
+
+    def test_el_resultado_solo_ofrece_descargar_los_archivos_que_existen(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
+        assert b"Descargar MIDI" in contenido
+        assert b"Descargar PDF" not in contenido
+
+    def test_un_rango_invertido_sin_separar_no_deja_la_casilla_marcada(self):
+        respuesta = self.client.post(reverse("index"), {
+            "url": "https://youtu.be/xyz", "inicio": "1:30", "fin": "0:30",
+        })
+        assert respuesta.status_code == 200
+        assert b'name="separar"' in respuesta.content
+        assert b'name="separar" checked' not in respuesta.content
+
+    def test_el_index_por_get_trae_la_casilla_marcada(self):
+        respuesta = self.client.get(reverse("index"))
+        assert b'name="separar" checked' in respuesta.content
 
     def test_descargar_un_archivo_que_no_existe_da_404(self):
         self._dejar_listo()

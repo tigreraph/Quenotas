@@ -4,13 +4,14 @@
     {% for aviso in fragmento.avisos %}<p>{{ aviso }}</p>{% endfor %}
   </div>
 {% endif %}
+<p class="limitacion">Dos notas iguales seguidas pueden salir como una sola nota larga; si una duración te parece el doble de lo que oyes, revisala al oído.</p>
 
 <div id="lienzo-notas" data-datos="{% url 'datos' fragmento.pk %}"></div>
 
 <p class="descargas">
-  <a href="{% url 'descargar' fragmento.pk 'midi' %}">Descargar MIDI</a>
-  <a href="{% url 'descargar' fragmento.pk 'txt' %}">Descargar TXT</a>
-  <a href="{% url 'descargar' fragmento.pk 'pdf' %}">Descargar PDF</a>
+  {% if fragmento.archivos.midi %}<a href="{% url 'descargar' fragmento.pk 'midi' %}">Descargar MIDI</a>{% endif %}
+  {% if fragmento.archivos.txt %}<a href="{% url 'descargar' fragmento.pk 'txt' %}">Descargar TXT</a>{% endif %}
+  {% if fragmento.archivos.pdf %}<a href="{% url 'descargar' fragmento.pk 'pdf' %}">Descargar PDF</a>{% endif %}
 </p>
 
 {% for indice, notas in frases %}

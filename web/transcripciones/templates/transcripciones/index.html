@@ -1,0 +1,43 @@
+{% extends "transcripciones/base.html" %}
+{% block contenido %}
+<h1>Sacar una melodía</h1>
+
+{% if formulario.errors %}
+  <div class="error">
+    {% for error in formulario.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <label>Enlace de YouTube
+    <input type="text" name="url" placeholder="https://www.youtube.com/watch?v=..."
+           value="{{ formulario.url.value|default:'' }}">
+  </label>
+  <p class="separador">o</p>
+  <label>Subir un archivo de audio
+    <input type="file" name="archivo" accept="audio/*,video/*">
+  </label>
+  <div class="rango">
+    <label>Desde <input type="text" name="inicio" placeholder="0:30"
+                        value="{{ formulario.inicio.value|default:'' }}"></label>
+    <label>Hasta <input type="text" name="fin" placeholder="1:30"
+                        value="{{ formulario.fin.value|default:'' }}"></label>
+  </div>
+  <label class="casilla">
+    <input type="checkbox" name="separar" checked>
+    Separar la melodía de la banda (desmarca si el audio ya es solo el instrumento)
+  </label>
+  <button type="submit">Obtener el fragmento</button>
+</form>
+
+{% if recientes %}
+<h2>Últimos fragmentos</h2>
+<ul>
+  {% for fragmento in recientes %}
+    <li><a href="{% url 'detalle' fragmento.pk %}">{{ fragmento }}</a>
+        <span class="estado">{{ fragmento.get_estado_display }}</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

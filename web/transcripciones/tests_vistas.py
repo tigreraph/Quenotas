@@ -128,3 +128,36 @@ class PruebaVistas(TestCase):
         with patch("transcripciones.views.trabajos.lanzar_preparacion") as lanzar:
             self.client.post(reverse("reintentar", args=[self.fragmento.pk]))
         lanzar.assert_not_called()
+
+    def _dejar_listo(self):
+        from transcripciones.models import Nota
+        self.fragmento.estado = Fragmento.LISTO
+        self.fragmento.archivos = {"midi": "media/x.mid", "txt": "media/x.txt"}
+        self.fragmento.avisos = ["La confianza media es baja."]
+        self.fragmento.save()
+        Nota.objects.create(fragmento=self.fragmento, frase=1, orden=1, nombre="G4",
+                            midi=67, inicio_s=0.4, duracion_s=0.42, confianza=0.93, cents=-12)
+        Nota.objects.create(fragmento=self.fragmento, frase=2, orden=2, nombre="B4",
+                            midi=71, inicio_s=2.0, duracion_s=0.60, confianza=0.40, cents=30)
+
+    def test_el_resultado_muestra_las_notas_agrupadas_por_frase(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
+        assert b"Frase 1" in contenido and b"Frase 2" in contenido
+        assert b"G4" in contenido and b"B4" in contenido
+        assert "alta".encode() in contenido and "baja".encode() in contenido
+
+    def test_el_resultado_muestra_los_avisos(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
+        assert "confianza media es baja".encode() in contenido
+
+    def test_descargar_un_archivo_que_no_existe_da_404(self):
+        self._dejar_listo()
+        respuesta = self.client.get(reverse("descargar", args=[self.fragmento.pk, "pdf"]))
+        assert respuesta.status_code == 404
+
+    def test_el_historial_lista_los_fragmentos(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("historial")).content
+        assert b"Huayno" in contenido

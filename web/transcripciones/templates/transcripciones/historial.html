@@ -1,0 +1,19 @@
+{% extends "transcripciones/base.html" %}
+{% block contenido %}
+<h1>Historial</h1>
+<table class="notas">
+  <thead><tr><th>Canción</th><th>Fragmento</th><th>Estado</th><th>Fecha</th></tr></thead>
+  <tbody>
+    {% for fragmento in fragmentos %}
+      <tr>
+        <td><a href="{% url 'detalle' fragmento.pk %}">{{ fragmento.cancion }}</a></td>
+        <td>{{ fragmento.inicio_s|floatformat:0 }} a {{ fragmento.fin_s|floatformat:0 }} s</td>
+        <td>{{ fragmento.get_estado_display }}</td>
+        <td>{{ fragmento.creado|date:"d/m/Y H:i" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Todavía no has analizado nada.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

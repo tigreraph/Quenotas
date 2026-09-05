@@ -1,0 +1,36 @@
+{% load static %}
+{% if fragmento.avisos %}
+  <div class="avisos">
+    {% for aviso in fragmento.avisos %}<p>{{ aviso }}</p>{% endfor %}
+  </div>
+{% endif %}
+
+<div id="lienzo-notas" data-datos="{% url 'datos' fragmento.pk %}"></div>
+
+<p class="descargas">
+  <a href="{% url 'descargar' fragmento.pk 'midi' %}">Descargar MIDI</a>
+  <a href="{% url 'descargar' fragmento.pk 'txt' %}">Descargar TXT</a>
+  <a href="{% url 'descargar' fragmento.pk 'pdf' %}">Descargar PDF</a>
+</p>
+
+{% for indice, notas in frases %}
+  <h2 class="frase" data-frase="{{ indice }}" title="Clic para repetir esta frase en bucle">Frase {{ indice }}</h2>
+  <table class="notas">
+    <thead>
+      <tr><th>#</th><th>Nota</th><th>Inicio</th><th>Duración</th><th>Confianza</th></tr>
+    </thead>
+    <tbody>
+      {% for nota in notas %}
+        <tr class="confianza-{{ nota.etiqueta_confianza }}" data-orden="{{ nota.orden }}">
+          <td>{{ nota.orden }}</td>
+          <td class="nombre">{{ nota.nombre }}</td>
+          <td>{{ nota.inicio_s|floatformat:2 }} s</td>
+          <td>{{ nota.duracion_s|floatformat:2 }} s</td>
+          <td>{{ nota.etiqueta_confianza }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endfor %}
+
+<script src="{% static 'pianoroll.js' %}" defer></script>

@@ -118,11 +118,22 @@ def analizar_recorte(
 
     _avisar(progreso, "Generando los archivos de salida")
     salidas = Path(salidas_en)
-    salidas.mkdir(parents=True, exist_ok=True)
     archivos = {"mezcla_wav": str(ruta_wav)}
     if melodia_wav is not None:
         archivos["melodia_wav"] = str(melodia_wav)
     avisos_salida = []
+    try:
+        salidas.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        # Sin carpeta no hay dónde escribir, pero las notas ya están: se devuelven.
+        return Resultado(
+            fragmento=resultado.fragmento,
+            analisis=resultado.analisis,
+            frases=resultado.frases,
+            archivos=archivos,
+            avisos=resultado.avisos
+            + (f"No se pudo crear la carpeta de salida ({error}); no se generaron archivos.",),
+        )
 
     def intentar(clave, etiqueta, generar):
         """Un archivo que falla se omite con aviso; nunca tumba el resultado."""

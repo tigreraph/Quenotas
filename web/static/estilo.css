@@ -36,6 +36,7 @@ button {
   background: var(--acento); color: #0b1017; font-weight: 600; cursor: pointer;
 }
 .separador { color: var(--tenue); text-align: center; margin: 0.25rem 0; }
+.ayuda { color: var(--tenue); font-size: 0.9rem; margin: 0.25rem 0 0.5rem; }
 .error { background: #3a1f1d; border-left: 3px solid var(--baja); padding: 0.75rem 1rem; }
 .avisos { background: #33301c; border-left: 3px solid var(--media); padding: 0.75rem 1rem; }
 .trabajando { color: var(--acento); }

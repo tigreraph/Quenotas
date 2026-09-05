@@ -19,11 +19,12 @@
     <input type="file" name="archivo" accept="audio/*,video/*">
   </label>
   <div class="rango">
-    <label>Desde <input type="text" name="inicio" placeholder="0:30"
+    <label>Desde (vacío = principio) <input type="text" name="inicio" placeholder="ejemplo: 0:30"
                         value="{{ formulario.inicio.value|default:'' }}"></label>
-    <label>Hasta <input type="text" name="fin" placeholder="1:30"
+    <label>Hasta (obligatorio) <input type="text" name="fin" placeholder="ejemplo: 1:30"
                         value="{{ formulario.fin.value|default:'' }}"></label>
   </div>
+  <p class="ayuda">Cada fragmento puede durar hasta 3 minutos. Una canción entera se analiza por partes: primero la frase que quieres sacar.</p>
   <label class="casilla">
     <input type="checkbox" name="separar" {% if formulario.separar.value or not formulario.is_bound %}checked{% endif %}>
     Separar la melodía de la banda (desmarca si el audio ya es solo el instrumento)

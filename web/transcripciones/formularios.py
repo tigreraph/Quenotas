@@ -25,17 +25,24 @@ def parsear_tiempo(texto) -> float:
 class FormularioFragmento(forms.Form):
     url = forms.CharField(required=False)
     archivo = forms.FileField(required=False)
-    inicio = forms.CharField()
-    fin = forms.CharField()
+    inicio = forms.CharField(required=False)   # vacío = 0:00
+    fin = forms.CharField(required=False)      # vacío = error con explicación, en clean()
     separar = forms.BooleanField(required=False, initial=True)
 
     def clean(self):
         datos = super().clean()
         if not datos.get("url") and not datos.get("archivo"):
             raise forms.ValidationError("Pega un enlace de YouTube o sube un archivo.")
+        texto_inicio = (datos.get("inicio") or "").strip() or "0:00"
+        texto_fin = (datos.get("fin") or "").strip()
+        if not texto_fin:
+            raise forms.ValidationError(
+                "Falta el final del fragmento (\"Hasta\", por ejemplo 1:30). "
+                "Cada fragmento puede durar hasta 3 minutos; una canción entera se analiza por partes."
+            )
         try:
-            inicio = parsear_tiempo(datos.get("inicio", ""))
-            fin = parsear_tiempo(datos.get("fin", ""))
+            inicio = parsear_tiempo(texto_inicio)
+            fin = parsear_tiempo(texto_fin)
         except ValueError as error:
             raise forms.ValidationError(str(error)) from error
         if fin <= inicio:

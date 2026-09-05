@@ -57,6 +57,25 @@ class PruebaVistas(TestCase):
         assert respuesta.status_code == 200
         assert Fragmento.objects.count() == 1
 
+    def test_desde_vacio_es_el_principio(self):
+        with patch("transcripciones.views.trabajos.lanzar_preparacion"):
+            respuesta = self.client.post(reverse("index"), {
+                "url": "https://youtu.be/xyz", "inicio": "", "fin": "0:45",
+            })
+        assert respuesta.status_code == 302
+        creado = Fragmento.objects.exclude(pk=self.fragmento.pk).get()
+        assert creado.inicio_s == 0.0
+        assert creado.fin_s == 45.0
+
+    def test_hasta_vacio_explica_que_falta(self):
+        respuesta = self.client.post(reverse("index"), {
+            "url": "https://youtu.be/xyz", "inicio": "", "fin": "",
+        })
+        assert respuesta.status_code == 200
+        assert "Falta el final del fragmento".encode() in respuesta.content
+        assert "3 minutos".encode() in respuesta.content
+        assert Fragmento.objects.count() == 1
+
     def test_un_fragmento_mas_largo_que_el_limite_se_rechaza(self):
         respuesta = self.client.post(reverse("index"), {
             "url": "https://youtu.be/xyz", "inicio": "0:00", "fin": "10:00",

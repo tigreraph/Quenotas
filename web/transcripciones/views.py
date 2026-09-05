@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from motor.contrato import formato_tiempo
@@ -123,5 +124,44 @@ def audio(request, pk, clave):
     return FileResponse(open(ruta, "rb"), content_type="audio/wav")
 
 
+ETIQUETAS_PISTA = (
+    ("mezcla_wav", "Mezcla original"),
+    ("melodia_wav", "Melodía aislada"),
+    ("notas_wav", "Notas detectadas"),
+)
+
+
 def datos(request, pk):
-    return JsonResponse({"notas": [], "pistas": {}})
+    """Todo lo que el lienzo necesita, en una sola petición."""
+    fragmento = get_object_or_404(Fragmento, pk=pk)
+    pistas = [
+        {
+            "clave": clave,
+            "etiqueta": etiqueta,
+            "url": reverse("audio", args=[fragmento.pk, clave]),
+        }
+        for clave, etiqueta in ETIQUETAS_PISTA
+        if fragmento.archivos.get(clave) and Path(fragmento.archivos[clave]).exists()
+    ]
+    frases = [
+        {"indice": indice, "inicio_s": notas[0].inicio_s, "fin_s": notas[-1].fin_s}
+        for indice, notas in fragmento.por_frases()
+    ]
+    return JsonResponse({
+        "duracion_s": fragmento.duracion_s,
+        "desplazamiento_s": fragmento.inicio_s,
+        "notas": [
+            {
+                "orden": nota.orden,
+                "nombre": nota.nombre,
+                "midi": nota.midi,
+                "inicio_s": nota.inicio_s,
+                "duracion_s": nota.duracion_s,
+                "confianza": nota.confianza,
+                "etiqueta": nota.etiqueta_confianza,
+            }
+            for nota in fragmento.notas.all()
+        ],
+        "frases": frases,
+        "pistas": pistas,
+    })

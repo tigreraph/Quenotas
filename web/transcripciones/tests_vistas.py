@@ -1,3 +1,5 @@
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -161,3 +163,28 @@ class PruebaVistas(TestCase):
         self._dejar_listo()
         contenido = self.client.get(reverse("historial")).content
         assert b"Huayno" in contenido
+
+    def test_los_datos_del_lienzo_traen_notas_frases_y_pistas(self):
+        self._dejar_listo()
+        respuesta = self.client.get(reverse("datos", args=[self.fragmento.pk]))
+        datos = respuesta.json()
+        assert datos["duracion_s"] == 60.0
+        assert datos["desplazamiento_s"] == 30.0
+        assert [nota["nombre"] for nota in datos["notas"]] == ["G4", "B4"]
+        assert datos["notas"][0]["inicio_s"] == 0.4
+        assert [nota["etiqueta"] for nota in datos["notas"]] == ["alta", "baja"]
+        assert [frase["indice"] for frase in datos["frases"]] == [1, 2]
+        assert datos["frases"][1]["inicio_s"] == 2.0
+        assert datos["frases"][1]["fin_s"] == 2.6
+        assert datos["pistas"] == []
+
+    def test_los_datos_solo_listan_las_pistas_que_existen(self):
+        self._dejar_listo()
+        with tempfile.TemporaryDirectory() as carpeta:
+            temporal = Path(carpeta) / "mezcla.wav"
+            temporal.write_bytes(b"RIFF")
+            self.fragmento.archivos = {**self.fragmento.archivos, "mezcla_wav": str(temporal)}
+            self.fragmento.save()
+            datos = self.client.get(reverse("datos", args=[self.fragmento.pk])).json()
+        assert [p["clave"] for p in datos["pistas"]] == ["mezcla_wav"]
+        assert datos["pistas"][0]["etiqueta"] == "Mezcla original"

@@ -3232,6 +3232,8 @@ del transcripciones\tests.py
 
 (Django 6.1 crea la carpeta `web/` si no existe; verificado el 2026-09-05. El `tests.py` que genera `startapp` se borra porque los tests van en `tests_modelos.py`, `tests_trabajos.py` y `tests_vistas.py`.)
 
+Después, **borrar la primera línea de `web/manage.py`** (el shebang `#!/usr/bin/env python`). Motivo, visto en esta máquina: el launcher `py` respeta el shebang y busca `python` en el PATH, que aquí es un Python 3.13 sin Django, así que `py web/manage.py ...` fallaba con "Couldn't import Django". Sin shebang, `py` usa su intérprete por defecto (3.14), que es el del proyecto. El proyecto es solo Windows y lo lanza un `.bat`, así que el shebang no sirve para nada.
+
 - [ ] **Paso 2: Ajustar `web/sacanotas/settings.py`**
 
 Sustituir o añadir estas partes:
@@ -3379,7 +3381,7 @@ Esperado: FALLA con `ImportError: cannot import name 'Cancion'`
 Crear `web/transcripciones/models.py`:
 
 ```python
-from django.db import models
+from django.db import models, transaction
 
 from motor.contrato import etiqueta_confianza
 
@@ -3441,30 +3443,35 @@ class Fragmento(models.Model):
         return self.fin_s - self.inicio_s
 
     def guardar_resultado(self, resultado):
-        """Vuelca un Resultado del motor en la base de datos."""
-        self.notas.all().delete()
-        Nota.objects.bulk_create([
-            Nota(
-                fragmento=self,
-                frase=frase.indice,
-                orden=nota.orden,
-                nombre=nota.nombre,
-                midi=nota.midi,
-                inicio_s=nota.inicio_s,
-                duracion_s=nota.duracion_s,
-                confianza=nota.confianza,
-                cents=nota.cents,
-            )
-            for frase in resultado.frases
-            for nota in frase.notas
-        ])
-        self.analisis = resultado.a_dict()["analisis"]
-        self.archivos = dict(resultado.archivos)
-        self.avisos = list(resultado.avisos)
-        self.estado = self.LISTO
-        self.paso = ""
-        self.mensaje = ""
-        self.save()
+        """Vuelca un Resultado del motor en la base de datos.
+
+        Todo o nada: si algo falla entre borrar las notas viejas y escribir
+        las nuevas, la base queda como estaba y el estado no pasa a LISTO.
+        """
+        with transaction.atomic():
+            self.notas.all().delete()
+            Nota.objects.bulk_create([
+                Nota(
+                    fragmento=self,
+                    frase=frase.indice,
+                    orden=nota.orden,
+                    nombre=nota.nombre,
+                    midi=nota.midi,
+                    inicio_s=nota.inicio_s,
+                    duracion_s=nota.duracion_s,
+                    confianza=nota.confianza,
+                    cents=nota.cents,
+                )
+                for frase in resultado.frases
+                for nota in frase.notas
+            ])
+            self.analisis = resultado.a_dict()["analisis"]
+            self.archivos = dict(resultado.archivos)
+            self.avisos = list(resultado.avisos)
+            self.estado = self.LISTO
+            self.paso = ""
+            self.mensaje = ""
+            self.save()
 
     def por_frases(self):
         """[(indice_de_frase, [notas...]), ...] en orden."""

@@ -1,0 +1,13 @@
+Django>=5.2
+numpy>=2.1
+scipy>=1.14
+soundfile>=0.13
+torch>=2.6
+torchaudio>=2.6
+torchcrepe>=0.0.24
+demucs>=4.1.0
+yt-dlp>=2026.8.19
+pretty_midi>=0.2.11
+fpdf2>=2.8
+pytest>=8.0
+pytest-django>=4.9

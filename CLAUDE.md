@@ -24,6 +24,24 @@ El plan fue revisado contra el diseño y contra esta máquina el 2026-09-05; [do
 
 ## Estado
 
-Diseño aprobado, plan escrito y revisado el 2026-09-05. No hay código todavía: la siguiente tarea es la 1 del plan.
+Implementado (tareas 1 a 19 del plan). Se arranca con doble clic en
+`iniciar.bat`, que abre `http://localhost:8000` e imprime la dirección para
+entrar desde el teléfono en el mismo wifi. Pendiente del músico: grabar
+`tests/fijos/escala_quena.wav`, correr la calibración y la prueba de extremo
+a extremo con una canción real (tarea 20, pasos 2, 3, 5 y 6).
 
 Entorno ya verificado en esta máquina: Python 3.14.7 global (`py`), ffmpeg y ffprobe 9.0 en el PATH, git 2.55, RTX 3050 Laptop con 4 GB de VRAM. Todas las dependencias tienen rueda para Python 3.14.
+
+## Cómo se prueba
+
+- Todo: `py -m pytest -q`
+- Solo motor: `py -m pytest tests -q`
+- Solo web: `py -m pytest web -q`
+- Calibración con la quena real: `py -m pytest tests/test_calibracion.py -q`
+
+Los tests marcados `lento` cargan CREPE. Para saltarlos: `py -m pytest -q -m "not lento"`.
+
+## Umbrales calibrados
+
+Pendiente: se anotan cuando pase `tests/test_calibracion.py` con la grabación
+real. Hasta entonces rigen los valores por defecto de `motor/config.py`.

@@ -11,6 +11,7 @@ from motor.afinacion import detectar_afinacion
 from motor.audio import duracion_s
 from motor.config import Config, resolver_dispositivo
 from motor.contrato import Fragmento, ParametrosAnalisis, Resultado
+from motor.exportar import a_midi, a_pdf, a_txt, sonificar
 from motor.notas import agrupar_en_frases, curva_a_notas, estimar_afinacion
 
 # Punto de sustitución para las pruebas: así se puede probar el pipeline
@@ -35,6 +36,8 @@ def analizar_recorte(
     config: Config | None = None,
     separar: bool = False,
     progreso=None,
+    salidas_en=None,
+    melodia_wav=None,
 ) -> Resultado:
     config = config or Config.desde_entorno()
     ruta_wav = Path(ruta_wav)
@@ -94,7 +97,7 @@ def analizar_recorte(
             f"cuenta; si tocas con la quena, ajústala o transpón de oído."
         )
 
-    return Resultado(
+    resultado = Resultado(
         fragmento=fragmento,
         analisis=ParametrosAnalisis(
             separacion=config.modelo_separacion if separar else "ninguna",
@@ -108,4 +111,35 @@ def analizar_recorte(
         frases=tuple(frases),
         archivos={},
         avisos=tuple(avisos),
+    )
+
+    if salidas_en is None:
+        return resultado
+
+    _avisar(progreso, "Generando los archivos de salida")
+    salidas = Path(salidas_en)
+    salidas.mkdir(parents=True, exist_ok=True)
+    archivos = {"mezcla_wav": str(ruta_wav)}
+    if melodia_wav is not None:
+        archivos["melodia_wav"] = str(melodia_wav)
+    avisos_salida = []
+
+    def intentar(clave, etiqueta, generar):
+        """Un archivo que falla se omite con aviso; nunca tumba el resultado."""
+        try:
+            archivos[clave] = str(generar())
+        except Exception as error:  # noqa: BLE001
+            avisos_salida.append(f"No se pudo generar el {etiqueta} ({error}).")
+
+    intentar("notas_wav", "audio de notas",
+             lambda: sonificar(resultado.frases, salidas / "notas.wav", duracion))
+    intentar("midi", "MIDI", lambda: a_midi(resultado.frases, salidas / "melodia.mid"))
+    intentar("txt", "TXT", lambda: a_txt(resultado, salidas / "notas.txt"))
+    intentar("pdf", "PDF", lambda: a_pdf(resultado, salidas / "notas.pdf"))
+    return Resultado(
+        fragmento=resultado.fragmento,
+        analisis=resultado.analisis,
+        frases=resultado.frases,
+        archivos=archivos,
+        avisos=resultado.avisos + tuple(avisos_salida),
     )

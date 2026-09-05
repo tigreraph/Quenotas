@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import soundfile as sf
 
@@ -83,3 +85,34 @@ def test_informa_del_progreso(recorte, detector_falso):
     mensajes = []
     pipeline.analizar_recorte(recorte, _fragmento(), separar=False, progreso=mensajes.append)
     assert any("afinación" in mensaje for mensaje in mensajes)
+
+
+def test_genera_los_archivos_cuando_se_le_da_un_directorio(recorte, detector_falso, tmp_path):
+    salidas = tmp_path / "salidas"
+    resultado = pipeline.analizar_recorte(
+        recorte, _fragmento(), separar=False, salidas_en=salidas
+    )
+    assert set(resultado.archivos) >= {"mezcla_wav", "notas_wav", "midi", "txt", "pdf"}
+    for clave, ruta in resultado.archivos.items():
+        assert Path(ruta).exists(), f"falta el archivo de {clave}"
+
+
+def test_sin_directorio_de_salida_no_genera_archivos(recorte, detector_falso):
+    resultado = pipeline.analizar_recorte(recorte, _fragmento(), separar=False)
+    assert resultado.archivos == {}
+
+
+def test_un_exportador_que_falla_deja_aviso_y_no_tumba_el_analisis(
+    recorte, detector_falso, tmp_path, monkeypatch
+):
+    def revienta(resultado, ruta):
+        raise RuntimeError("fuente no encontrada")
+
+    monkeypatch.setattr(pipeline, "a_pdf", revienta)
+    resultado = pipeline.analizar_recorte(
+        recorte, _fragmento(), separar=False, salidas_en=tmp_path / "salidas"
+    )
+    assert [nota.nombre for nota in resultado.notas] == ["A4", "B4"]
+    assert "pdf" not in resultado.archivos
+    assert "midi" in resultado.archivos
+    assert any("PDF" in aviso for aviso in resultado.avisos)

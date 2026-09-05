@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 
 from motor.contrato import etiqueta_confianza
 
@@ -60,30 +60,35 @@ class Fragmento(models.Model):
         return self.fin_s - self.inicio_s
 
     def guardar_resultado(self, resultado):
-        """Vuelca un Resultado del motor en la base de datos."""
-        self.notas.all().delete()
-        Nota.objects.bulk_create([
-            Nota(
-                fragmento=self,
-                frase=frase.indice,
-                orden=nota.orden,
-                nombre=nota.nombre,
-                midi=nota.midi,
-                inicio_s=nota.inicio_s,
-                duracion_s=nota.duracion_s,
-                confianza=nota.confianza,
-                cents=nota.cents,
-            )
-            for frase in resultado.frases
-            for nota in frase.notas
-        ])
-        self.analisis = resultado.a_dict()["analisis"]
-        self.archivos = dict(resultado.archivos)
-        self.avisos = list(resultado.avisos)
-        self.estado = self.LISTO
-        self.paso = ""
-        self.mensaje = ""
-        self.save()
+        """Vuelca un Resultado del motor en la base de datos.
+
+        Todo o nada: si algo falla entre borrar las notas viejas y escribir
+        las nuevas, la base queda como estaba y el estado no pasa a LISTO.
+        """
+        with transaction.atomic():
+            self.notas.all().delete()
+            Nota.objects.bulk_create([
+                Nota(
+                    fragmento=self,
+                    frase=frase.indice,
+                    orden=nota.orden,
+                    nombre=nota.nombre,
+                    midi=nota.midi,
+                    inicio_s=nota.inicio_s,
+                    duracion_s=nota.duracion_s,
+                    confianza=nota.confianza,
+                    cents=nota.cents,
+                )
+                for frase in resultado.frases
+                for nota in frase.notas
+            ])
+            self.analisis = resultado.a_dict()["analisis"]
+            self.archivos = dict(resultado.archivos)
+            self.avisos = list(resultado.avisos)
+            self.estado = self.LISTO
+            self.paso = ""
+            self.mensaje = ""
+            self.save()
 
     def por_frases(self):
         """[(indice_de_frase, [notas...]), ...] en orden."""

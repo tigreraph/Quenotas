@@ -73,3 +73,51 @@ def test_el_txt_indica_cuando_no_hay_notas(tmp_path):
     )
     texto = a_txt(vacio, tmp_path / "vacio.txt").read_text(encoding="utf-8")
     assert "No se detectaron notas" in texto
+
+
+import numpy as np
+import soundfile as sf
+
+from motor.exportar import a_pdf, sonificar
+
+
+def test_el_pdf_se_genera_y_no_esta_vacio(tmp_path):
+    ruta = a_pdf(_resultado(), tmp_path / "notas.pdf")
+    assert ruta.exists()
+    contenido = ruta.read_bytes()
+    assert contenido.startswith(b"%PDF")
+    assert len(contenido) > 1000
+
+
+def test_el_pdf_de_un_resultado_sin_notas_tambien_se_genera(tmp_path):
+    vacio = Resultado(fragmento=_resultado().fragmento, analisis=_resultado().analisis,
+                      frases=(), archivos={}, avisos=())
+    assert a_pdf(vacio, tmp_path / "vacio.pdf").exists()
+
+
+def test_el_pdf_aguanta_titulos_fuera_de_latin1(tmp_path):
+    base = _resultado()
+    raro = Resultado(
+        fragmento=Fragmento(titulo='Huayno ♪ – "en vivo" 山', fuente="youtube",
+                            referencia=base.fragmento.referencia, inicio_s=30.0, fin_s=90.0),
+        analisis=base.analisis, frases=base.frases, archivos={},
+        avisos=("aviso con ♪",),
+    )
+    assert a_pdf(raro, tmp_path / "raro.pdf").exists()
+
+
+def test_la_sonificacion_dura_lo_pedido_y_suena_donde_hay_notas(tmp_path):
+    ruta = sonificar(_resultado().frases, tmp_path / "notas.wav", duracion_total_s=3.0)
+    señal, sr = sf.read(ruta)
+    assert sr == 44100
+    assert len(señal) == 3 * 44100
+    silencio_inicial = señal[: int(0.35 * sr)]
+    zona_con_nota = señal[int(0.45 * sr) : int(0.75 * sr)]
+    assert np.max(np.abs(silencio_inicial)) < 1e-6
+    assert np.max(np.abs(zona_con_nota)) > 0.1
+
+
+def test_la_sonificacion_sin_notas_es_silencio(tmp_path):
+    ruta = sonificar((), tmp_path / "silencio.wav", duracion_total_s=1.0)
+    señal, _ = sf.read(ruta)
+    assert np.max(np.abs(señal)) == 0.0

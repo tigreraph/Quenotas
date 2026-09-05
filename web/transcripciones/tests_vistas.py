@@ -16,7 +16,7 @@ def test_parsear_tiempo_acepta_los_tres_formatos():
 
 
 def test_parsear_tiempo_rechaza_basura():
-    for texto in ["", "abc", "1:2:3", "-5"]:
+    for texto in ["", "abc", "1:2:3", "-5", "1:75"]:
         with pytest.raises(ValueError):
             parsear_tiempo(texto)
 

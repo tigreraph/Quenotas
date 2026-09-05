@@ -1327,7 +1327,7 @@ def test_cargar_mono_promedia_los_canales(tmp_path):
     ruta = tmp_path / "estereo.wav"
     izquierda = np.ones(1000, dtype=np.float32)
     derecha = np.full(1000, -1.0, dtype=np.float32)
-    sf.write(ruta, np.stack([izquierda, derecha], axis=1), 16000)
+    sf.write(ruta, np.stack([izquierda, derecha], axis=1), 16000, subtype="FLOAT")
     señal, sr = cargar_mono(ruta)
     assert sr == 16000
     assert señal.ndim == 1

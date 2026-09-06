@@ -4,6 +4,17 @@ from motor.contrato import etiqueta_confianza
 
 
 class Cancion(models.Model):
+    PENDIENTE = "pendiente"
+    PREPARANDO = "preparando"
+    LISTA = "lista"
+    ERROR = "error"
+    ESTADOS = [
+        (PENDIENTE, "Pendiente"),
+        (PREPARANDO, "Preparando el audio"),
+        (LISTA, "Lista"),
+        (ERROR, "Error"),
+    ]
+
     titulo = models.CharField(max_length=300)
     fuente = models.CharField(
         max_length=20,
@@ -11,6 +22,14 @@ class Cancion(models.Model):
         default="archivo",
     )
     referencia = models.TextField(blank=True)
+    origen = models.TextField(blank=True)          # URL o ruta del archivo subido
+    audio_original = models.TextField(blank=True)  # audio completo, para recortar
+    audio_escucha = models.TextField(blank=True)   # m4a para el navegador
+    duracion_s = models.FloatField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE)
+    paso = models.CharField(max_length=120, blank=True)
+    mensaje = models.TextField(blank=True)
+    separar = models.BooleanField(default=True)    # última elección del usuario
     creada = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -18,6 +37,14 @@ class Cancion(models.Model):
 
     def __str__(self):
         return self.titulo or "Sin título"
+
+    @property
+    def lista(self) -> bool:
+        return self.estado == self.LISTA
+
+    def frases(self):
+        """Los fragmentos de la canción en el orden en que suenan."""
+        return self.fragmentos.order_by("inicio_s", "pk")
 
 
 class Fragmento(models.Model):

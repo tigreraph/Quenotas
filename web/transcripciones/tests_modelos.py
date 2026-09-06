@@ -65,3 +65,14 @@ class PruebaModelos(TestCase):
         frases = self.fragmento.por_frases()
         assert [indice for indice, _ in frases] == [1, 2]
         assert [nota.nombre for nota in frases[0][1]] == ["G4"]
+
+    def test_una_cancion_nace_pendiente_y_sin_audio(self):
+        assert self.cancion.estado == Cancion.PENDIENTE
+        assert self.cancion.lista is False
+        assert self.cancion.duracion_s is None
+        assert self.cancion.separar is True
+
+    def test_las_frases_de_la_cancion_van_por_tiempo_no_por_fecha(self):
+        Fragmento.objects.create(cancion=self.cancion, inicio_s=90.0, fin_s=120.0)
+        Fragmento.objects.create(cancion=self.cancion, inicio_s=10.0, fin_s=20.0)
+        assert [f.inicio_s for f in self.cancion.frases()] == [10.0, 30.0, 90.0]

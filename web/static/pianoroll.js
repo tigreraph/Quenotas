@@ -248,6 +248,9 @@
       pincel.setTransform(escala, 0, 0, escala, 0, 0);
       pincel.clearRect(0, 0, anchoCss, altoCss);
 
+      // Fondo de carril por toda la línea de tiempo (guía de la escala de
+      // Sol mayor). Los nombres de carril NO se dibujan acá: van en la
+      // columna fija más abajo, para no perderse con el desplazamiento.
       for (let midi = minimo; midi <= maximo; midi += 1) {
         const y = aY(midi);
         const clase = ((midi % 12) + 12) % 12;
@@ -255,10 +258,6 @@
           pincel.fillStyle = "#242832";
           pincel.fillRect(0, y, anchoCss, ALTO_CARRIL);
         }
-        pincel.fillStyle = "#9aa0ab";
-        pincel.font = FUENTE_CARRIL;
-        pincel.textBaseline = "middle";
-        pincel.fillText(nombreDeMidi(midi), 4, y + ALTO_CARRIL / 2);
       }
 
       pincel.strokeStyle = "#2a2e37";
@@ -270,10 +269,6 @@
         pincel.lineTo(anchoCss, y);
         pincel.stroke();
       }
-      pincel.beginPath();
-      pincel.moveTo(MARGEN_IZQ, 0);
-      pincel.lineTo(MARGEN_IZQ, altoCss);
-      pincel.stroke();
 
       if (bucle) {
         pincel.fillStyle = "rgba(111, 180, 255, 0.10)";
@@ -314,6 +309,27 @@
       pincel.lineTo(x, altoCss);
       pincel.stroke();
 
+      // Columna de carriles fija al borde izquierdo visible: se redibuja en
+      // cada cuadro en scrollLeft para no perderse con el desplazamiento
+      // horizontal. Se pinta al final, encima de todo lo demás (bloques,
+      // grilla, cursor); lo que quede debajo queda tapado, y es lo esperado.
+      const bordeIzq = scroll.scrollLeft;
+      for (let midi = minimo; midi <= maximo; midi += 1) {
+        const y = aY(midi);
+        const clase = ((midi % 12) + 12) % 12;
+        pincel.fillStyle = ESCALA_SOL.has(clase) ? "#242832" : "#1d2027";
+        pincel.fillRect(bordeIzq, y, MARGEN_IZQ, ALTO_CARRIL);
+        pincel.fillStyle = "#9aa0ab";
+        pincel.font = FUENTE_CARRIL;
+        pincel.textBaseline = "middle";
+        pincel.fillText(nombreDeMidi(midi), bordeIzq + 4, y + ALTO_CARRIL / 2);
+      }
+      pincel.strokeStyle = "#2a2e37";
+      pincel.beginPath();
+      pincel.moveTo(bordeIzq + MARGEN_IZQ, 0);
+      pincel.lineTo(bordeIzq + MARGEN_IZQ, altoCss);
+      pincel.stroke();
+
       etiqueta.textContent = actual
         ? `${formatoTiempo(datos.desplazamiento_s + reproductor.currentTime)}  ·  ${actual.nombre}`
         : formatoTiempo(datos.desplazamiento_s + reproductor.currentTime);
@@ -346,7 +362,7 @@
       const caja = canvas.getBoundingClientRect();
       const localX = evento.clientX - caja.left;
       const localY = evento.clientY - caja.top;
-      if (localX < MARGEN_IZQ) return; // zona de nombres de carril, no hace nada
+      if (localX < scroll.scrollLeft + MARGEN_IZQ) return; // columna de nombres de carril, fija a la izquierda
       const notaClicada = [...datos.notas].reverse().find((nota) => {
         const { x, y, ancho, alto } = cajaDeNota(nota);
         return localX >= x && localX <= x + ancho && localY >= y && localY <= y + alto;

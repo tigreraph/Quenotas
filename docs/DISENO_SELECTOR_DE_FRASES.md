@@ -1,7 +1,7 @@
 # SacaNotas: selector de frases sobre la forma de onda
 
 **Fecha:** 2026-09-05
-**Estado:** diseño aprobado en el chat, pendiente de plan de implementación
+**Estado:** implementado (ver PLAN_SELECTOR_DE_FRASES.md)
 **Complementa a:** `DISENO.md` (el diseño base sigue vigente en todo lo que aquí no se cambia)
 
 ---

@@ -4,6 +4,8 @@
 **Estado:** diseño aprobado; plan escrito y revisado el 2026-09-05 (`PLAN.md`, `REVISION_PLAN.md`)
 **Autor del contexto:** Jonnathan Tigre (músico empírico, quena, banda de música andina)
 
+**Actualización 2026-09-05:** el flujo de entrada (sección 3, 7.2 y 8.2) fue sustituido por el selector de frases sobre la forma de onda; ver `DISENO_SELECTOR_DE_FRASES.md`. El resto sigue vigente.
+
 ---
 
 ## 1. Problema

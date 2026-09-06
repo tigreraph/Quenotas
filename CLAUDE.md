@@ -13,26 +13,23 @@ El plan fue revisado contra el diseño y contra esta máquina el 2026-09-05; [do
 * **Dos capas separadas y no se mezclan.** `motor/` es Python puro y no importa Django. `web/` es Django y no contiene lógica de audio. Cualquier cosa que huela a procesamiento de señal va en `motor/`.
 * **El contrato de datos manda.** Toda pieza produce o consume la estructura JSON descrita en la sección 6 del diseño. Si hace falta cambiarla, se cambia primero ahí y se avisa, porque varias piezas dependen de ella a la vez.
 * **Melodía monofónica, una sola voz.** Nada de acordes ni polifonía.
-* **Se trabaja por fragmentos**, no por canciones completas. El usuario indica un rango tipo `0:30` a `1:30`.
+* **La unidad es la canción; las frases se marcan sobre su forma de onda.** Se sube o se enlaza una vez, la canción se prepara en segundo plano (audio original, copia `escucha.m4a` para el navegador y `onda.json` con los picos en `media/canciones/<id>/`), y cada "Analizar esta selección" crea un `Fragmento` que se recorta desde el audio de la canción y se analiza. Límites por frase: entre 1 s y 3 min.
 * **Notas en cifrado anglosajón:** `G4`, `A4`, `F5`.
 * **Nada de entornos virtuales.** Intérprete global de Python, `requirements.txt` y un `.bat` de doble clic, igual que el resto de proyectos del espacio de trabajo.
 * **Un solo runner de pruebas:** `py -m pytest -q` corre motor y web (`pytest-django`). No usar `manage.py test`.
 * **Las descargas se guardan y se reutilizan.** `media/origen/<id_de_video>.<ext>`; una canción se baja una sola vez aunque se analicen diez fragmentos, y la misma URL cuelga de la misma `Cancion`.
 * **Un análisis a la vez** (semáforo en `trabajos.py`): la GPU de 4 GB no aguanta dos Demucs. Si se queda sin memoria, se reintenta en CPU antes de renunciar a separar.
+* **El audio se sirve con `Range`** (`transcripciones/audio_http.py`): sin respuestas 206 no se puede saltar dentro de una canción larga ni reproducir en Safari.
 * **Los subprocesos hablan UTF-8** (`encoding="utf-8"`, `PYTHONUTF8=1`), porque Windows decodifica con cp1252 y un título de YouTube con `♪` rompe la descarga.
 * **Sin autenticación, sin Celery, sin despliegue remoto** por ahora. Están excluidos a propósito, no olvidados.
 
 ## Estado
 
-Implementado (tareas 1 a 19 del plan). Se arranca con doble clic en
-`iniciar.bat`, que abre `http://localhost:8000` e imprime la dirección para
-entrar desde el teléfono en el mismo wifi. Pendiente del músico: grabar
-`tests/fijos/escala_quena.wav`, correr la calibración y la prueba de extremo
-a extremo con una canción real (tarea 20, pasos 2, 3, 5 y 6).
+Implementado (plan base de 20 tareas más el selector de frases sobre la forma de onda, `docs/PLAN_SELECTOR_DE_FRASES.md`). Se arranca con doble clic en `iniciar.bat`. Pendiente del músico: grabar `tests/fijos/escala_quena.wav`, correr la calibración, y probar el selector desde el teléfono con una canción real.
 
 Entorno ya verificado en esta máquina: Python 3.14.7 global (`py`), ffmpeg y ffprobe 9.0 en el PATH, git 2.55, RTX 3050 Laptop con 4 GB de VRAM. Todas las dependencias tienen rueda para Python 3.14.
 
-`media/fragmentos/` crece con cada análisis y nadie lo limpia todavía; si el disco se llena, borrar a mano las carpetas de fragmentos viejos. Si el teléfono es un iPhone, Safari puede exigir soporte de `Range` para reproducir el audio; en ese caso la tarea 21 (OGG o vista con `Range`) pasa de opcional a necesaria. Los archivos subidos no se reutilizan entre fragmentos desde la interfaz todavía (hueco conocido).
+`media/fragmentos/` crece con cada análisis y nadie lo limpia todavía; si el disco se llena, borrar a mano las carpetas de fragmentos viejos. Si el teléfono es un iPhone, Safari puede exigir soporte de `Range` para reproducir el audio; en ese caso la tarea 21 (OGG o vista con `Range`) pasa de opcional a necesaria.
 
 ## Cómo se prueba
 

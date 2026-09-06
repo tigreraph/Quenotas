@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from motor.contrato import formato_tiempo
 
 from . import trabajos
+from .audio_http import respuesta_audio
 from .formularios import FormularioFragmento
 from .models import Cancion, Fragmento
 
@@ -128,10 +129,9 @@ def descargar(request, pk, clave):
 
 
 def audio(request, pk, clave):
-    """Entrega el audio para reproducirlo en la página, no para descargarlo."""
+    """Entrega el audio para reproducirlo en la página, con soporte de Range."""
     fragmento = get_object_or_404(Fragmento, pk=pk)
-    ruta = _archivo_de(fragmento, clave)
-    return FileResponse(open(ruta, "rb"), content_type="audio/wav")
+    return respuesta_audio(_archivo_de(fragmento, clave), request)
 
 
 ETIQUETAS_PISTA = (

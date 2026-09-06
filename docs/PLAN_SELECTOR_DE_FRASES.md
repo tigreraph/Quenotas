@@ -1459,8 +1459,14 @@ TOLERANCIA_FIN_S = 0.25   # la misma que recortar()
 # --- inicio ---
 
 def index(request):
-    formulario = FormularioCancion(request.POST or None, request.FILES or None)
-    if request.method == "POST" and formulario.is_valid():
+    # Se vincula siempre que sea POST: con `request.POST or None` un envío
+    # vacío (QueryDict vacío es falsy) dejaría el formulario sin vincular y
+    # el error "Pega un enlace o sube un archivo" nunca se mostraría.
+    es_envio = request.method == "POST"
+    formulario = FormularioCancion(
+        request.POST if es_envio else None, request.FILES if es_envio else None,
+    )
+    if es_envio and formulario.is_valid():
         datos = formulario.cleaned_data
         if datos.get("archivo"):
             ruta = _guardar_subida(datos["archivo"])

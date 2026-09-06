@@ -75,3 +75,42 @@ def test_escribir_wav_y_volver_a_leerlo(tmp_path):
     leida, sr = cargar_mono(ruta)
     assert sr == 16000
     assert len(leida) == len(señal)
+
+
+from motor.audio import convertir_para_escucha, forma_de_onda
+
+
+def test_la_forma_de_onda_tiene_una_columna_por_pedido_y_va_de_0_a_1(tmp_path):
+    ruta = tmp_path / "medio.wav"
+    sf.write(ruta, secuencia([(440.0, 1.0), (None, 1.0)], sr=16000), 16000)
+    picos = forma_de_onda(ruta, columnas=10)
+    assert len(picos) == 10
+    assert all(0.0 <= p <= 1.0 for p in picos)
+    assert min(picos[:5]) > 0.9          # el tono ocupa la primera mitad
+    assert max(picos[5:]) < 0.01         # el silencio, la segunda (el remuestreo deja un resto ínfimo)
+
+
+def test_la_forma_de_onda_del_silencio_es_todo_ceros(tmp_path):
+    ruta = tmp_path / "silencio.wav"
+    sf.write(ruta, secuencia([(None, 0.5)], sr=16000), 16000)
+    assert forma_de_onda(ruta, columnas=8) == [0.0] * 8
+
+
+def test_una_senal_mas_corta_que_las_columnas_no_revienta(tmp_path):
+    ruta = tmp_path / "corta.wav"
+    sf.write(ruta, secuencia([(440.0, 0.002)], sr=16000), 16000)
+    picos = forma_de_onda(ruta, columnas=100)
+    assert len(picos) == 100
+
+
+def test_la_forma_de_onda_falla_con_claridad_si_el_archivo_no_existe(tmp_path):
+    with pytest.raises(ErrorAudio):
+        forma_de_onda(tmp_path / "no.wav")
+
+
+def test_convertir_para_escucha_produce_un_m4a_con_la_misma_duracion(tmp_path):
+    ruta = tmp_path / "origen.wav"
+    sf.write(ruta, secuencia([(440.0, 1.5)], sr=44100), 44100)
+    salida = convertir_para_escucha(ruta, tmp_path / "escucha" / "escucha.m4a")
+    assert salida.exists() and salida.suffix == ".m4a"
+    assert duracion_s(salida) == pytest.approx(1.5, abs=0.15)

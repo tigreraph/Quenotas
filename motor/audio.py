@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import tempfile
 from fractions import Fraction
 from pathlib import Path
 
@@ -91,3 +92,55 @@ def escribir_wav(ruta, senal: np.ndarray, sr: int) -> Path:
     ruta.parent.mkdir(parents=True, exist_ok=True)
     sf.write(str(ruta), np.asarray(senal, dtype=np.float32), int(sr))
     return ruta
+
+
+def forma_de_onda(ruta, columnas: int = 1200, sr_lectura: int = 8000) -> list[float]:
+    """Pico absoluto por columna, normalizado a 0..1, para dibujar la onda.
+
+    Pasa por ffmpeg porque soundfile no lee webm, opus ni m4a, que es lo
+    que baja de YouTube. A 8 kHz mono el temporal es pequeño y sobra para
+    dibujar.
+    """
+    ruta = Path(ruta)
+    if not ruta.exists():
+        raise ErrorAudio(f"el archivo no existe: {ruta}")
+    columnas = max(1, int(columnas))
+    with tempfile.TemporaryDirectory() as carpeta:
+        temporal = Path(carpeta) / "onda.wav"
+        _ejecutar([
+            "ffmpeg", "-y", "-v", "error", "-i", str(ruta),
+            "-vn", "-ac", "1", "-ar", str(sr_lectura), "-c:a", "pcm_s16le",
+            str(temporal),
+        ])
+        senal, _ = cargar_mono(temporal)
+    if len(senal) == 0:
+        return [0.0] * columnas
+    bordes = np.linspace(0, len(senal), columnas + 1).astype(int)
+    picos = np.array(
+        [float(np.max(np.abs(senal[a:b]))) if b > a else 0.0 for a, b in zip(bordes[:-1], bordes[1:])],
+        dtype=float,
+    )
+    maximo = float(picos.max())
+    if maximo <= 0.0:
+        return [0.0] * columnas
+    return [round(float(p / maximo), 4) for p in picos]
+
+
+def convertir_para_escucha(entrada, salida, bitrate: str = "128k") -> Path:
+    """Copia AAC (m4a) para el navegador.
+
+    Safari y el iPhone no reproducen webm/opus, y un WAV subido puede pesar
+    50 MB. El original se conserva para recortar y analizar.
+    """
+    entrada, salida = Path(entrada), Path(salida)
+    if not entrada.exists():
+        raise ErrorAudio(f"el archivo no existe: {entrada}")
+    salida.parent.mkdir(parents=True, exist_ok=True)
+    _ejecutar([
+        "ffmpeg", "-y", "-v", "error", "-i", str(entrada),
+        "-vn", "-c:a", "aac", "-b:a", bitrate, "-movflags", "+faststart",
+        str(salida),
+    ])
+    if not salida.exists():
+        raise ErrorAudio("ffmpeg no generó el audio de escucha")
+    return salida

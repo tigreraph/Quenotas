@@ -4,7 +4,7 @@ Extrae la melodía de una canción y la devuelve como notas en cifrado anglosaj�
 
 ## Qué hace
 
-Se sube un archivo de audio o se pega un enlace de YouTube. Aparece la forma de onda completa de la canción y sobre ella se marcan frases con dos manijas arrastrables. Cada frase se analiza por separado: opcionalmente se separa la melodía de la banda con Demucs (`htdemucs_6s`) y luego se detecta la altura con CREPE. El resultado de cada frase muestra un lienzo de notas con zoom, un panel de detalle por nota, fichas por frase, tres pistas de escucha alineadas en el tiempo (la mezcla original, la melodía aislada y una sonificación de las notas detectadas), control de velocidad, bucle por frase y atajos de teclado (espacio para reproducir o pausar, flechas para moverse nota a nota).
+Se sube un archivo de audio o se pega un enlace de YouTube. Aparece la forma de onda completa de la canción y sobre ella se marcan frases con dos manijas arrastrables. Cada frase se analiza por separado: opcionalmente se separa la melodía de la banda con Demucs (`htdemucs_6s`) y luego se detecta la altura con CREPE. El resultado de cada frase muestra un lienzo de notas con zoom, un panel de detalle por nota, fichas por frase, tres pistas de escucha alineadas en el tiempo (la mezcla original, la melodía aislada y una sonificación de las notas detectadas), control de velocidad, bucle por frase y atajos de teclado (espacio para reproducir o pausar, flechas para retroceder o avanzar 2 segundos).
 
 ## Requisitos
 

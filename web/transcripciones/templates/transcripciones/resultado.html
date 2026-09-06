@@ -7,6 +7,11 @@
 <p class="limitacion">Dos notas iguales seguidas pueden salir como una sola nota larga; si una duración te parece el doble de lo que oyes, revisala al oído.</p>
 
 <div id="lienzo-notas" data-datos="{% url 'datos' fragmento.pk %}"></div>
+<p class="ayuda">Espacio: pausar o seguir · Flechas: 2 s atrás o adelante</p>
+
+<aside class="detalle-nota" aria-live="polite">
+  <p class="detalle-vacio">Elige una nota en el gráfico o en la lista</p>
+</aside>
 
 <p class="descargas">
   {% if fragmento.archivos.midi %}<a href="{% url 'descargar' fragmento.pk 'midi' %}">Descargar MIDI</a>{% endif %}
@@ -15,23 +20,33 @@
 </p>
 
 {% for indice, notas in frases %}
-  <h2 class="frase" data-frase="{{ indice }}" title="Clic para repetir esta frase en bucle">Frase {{ indice }}</h2>
-  <table class="notas">
-    <thead>
-      <tr><th>#</th><th>Nota</th><th>Inicio</th><th>Duración</th><th>Confianza</th></tr>
-    </thead>
-    <tbody>
+  <section class="frase-bloque">
+    <h2 class="frase" data-frase="{{ indice }}" title="Clic para repetir esta frase en bucle">Frase {{ indice }}</h2>
+    <div class="fichas">
       {% for nota in notas %}
-        <tr class="confianza-{{ nota.etiqueta_confianza }}" data-orden="{{ nota.orden }}">
-          <td>{{ nota.orden }}</td>
-          <td class="nombre">{{ nota.nombre }}</td>
-          <td>{{ nota.inicio_s|floatformat:2 }} s</td>
-          <td>{{ nota.duracion_s|floatformat:2 }} s</td>
-          <td>{{ nota.etiqueta_confianza }}</td>
-        </tr>
+        <button type="button" class="ficha confianza-{{ nota.etiqueta_confianza }}" data-orden="{{ nota.orden }}">{{ nota.nombre }}</button>
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+    <details class="detalle-tabla">
+      <summary>Ver detalle</summary>
+      <table class="notas">
+        <thead>
+          <tr><th>#</th><th>Nota</th><th>Inicio</th><th>Duración</th><th>Confianza</th></tr>
+        </thead>
+        <tbody>
+          {% for nota in notas %}
+            <tr class="confianza-{{ nota.etiqueta_confianza }}" data-orden="{{ nota.orden }}">
+              <td>{{ nota.orden }}</td>
+              <td class="nombre">{{ nota.nombre }}</td>
+              <td>{{ nota.inicio_s|floatformat:2 }} s</td>
+              <td>{{ nota.duracion_s|floatformat:2 }} s</td>
+              <td>{{ nota.etiqueta_confianza }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
 {% endfor %}
 
 <script src="{% static 'pianoroll.js' %}" defer></script>

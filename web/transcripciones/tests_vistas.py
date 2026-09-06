@@ -319,6 +319,16 @@ class PruebaVistas(TestCase):
         assert b"Frase 1" in contenido and b"Frase 2" in contenido
         assert b"G4" in contenido and b"B4" in contenido
         assert "alta".encode() in contenido and "baja".encode() in contenido
+        assert b'class="ficha' in contenido
+        assert "Ver detalle".encode() in contenido
+
+    def test_el_resultado_trae_el_panel_de_detalle_y_las_fichas_con_su_orden(self):
+        self._dejar_listo()
+        contenido = self.client.get(reverse("detalle", args=[self.fragmento.pk])).content
+        assert b'class="detalle-nota' in contenido
+        assert b'data-orden="1"' in contenido and b'data-orden="2"' in contenido
+        assert b'<button' in contenido and b'class="ficha' in contenido
+        assert "Espacio: pausar".encode() in contenido
 
     def test_el_resultado_muestra_los_avisos_y_la_limitacion(self):
         self._dejar_listo()
@@ -348,6 +358,7 @@ class PruebaVistas(TestCase):
         assert datos["desplazamiento_s"] == 30.0
         assert [nota["nombre"] for nota in datos["notas"]] == ["G4", "B4"]
         assert [nota["etiqueta"] for nota in datos["notas"]] == ["alta", "baja"]
+        assert datos["notas"][0]["cents"] == -12
         assert [frase["indice"] for frase in datos["frases"]] == [1, 2]
         assert datos["pistas"] == []
 

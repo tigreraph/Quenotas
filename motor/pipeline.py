@@ -5,6 +5,7 @@ descarga y separación se añaden más adelante sin cambiar la firma.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from motor.afinacion import detectar_afinacion
@@ -161,6 +162,34 @@ def analizar_recorte(
     )
 
 
+@dataclass(frozen=True)
+class Fuente:
+    """De dónde salió el audio completo. Es del pipeline, no del contrato."""
+    ruta: Path
+    titulo: str
+    fuente: str          # "youtube" | "archivo"
+    referencia: str
+
+
+def obtener_audio(origen, cache_dir=None, titulo: str = "", progreso=None) -> Fuente:
+    """Descarga (con caché por id de video) o localiza el archivo. No recorta."""
+    cache_dir = Path(cache_dir) if cache_dir else Config.desde_entorno().media_dir / "origen"
+    if modulo_descarga.es_url(str(origen)):
+        referencia = str(origen)
+        _avisar(progreso, "Consultando el video")
+        id_video, titulo_remoto = modulo_descarga.obtener_info(referencia)
+        _avisar(progreso, "Descargando el audio")
+        ruta = modulo_descarga.descargar_audio(referencia, cache_dir, id_video=id_video)
+        return Fuente(
+            ruta=Path(ruta), titulo=titulo or titulo_remoto or "Sin título",
+            fuente="youtube", referencia=referencia,
+        )
+    ruta = Path(origen)
+    if not ruta.exists():
+        raise ErrorPipeline(f"el archivo no existe: {ruta}")
+    return Fuente(ruta=ruta, titulo=titulo or ruta.stem, fuente="archivo", referencia=ruta.name)
+
+
 def preparar(
     origen,
     inicio_s: float,
@@ -172,32 +201,16 @@ def preparar(
 ) -> tuple[Path, Fragmento]:
     """Obtiene el audio y recorta el rango. Devuelve (recorte, fragmento).
 
-    Es la primera mitad del trabajo. Se separa de la segunda porque la
-    aplicación deja escuchar el recorte antes de analizarlo. Las descargas
-    van a cache_dir, compartida por todos los fragmentos, y se reutilizan.
+    Para consola y pruebas. La aplicación web ya no la usa: obtiene el audio
+    una vez por canción con obtener_audio y recorta cada frase aparte.
     """
     trabajo = Path(directorio_trabajo)
     trabajo.mkdir(parents=True, exist_ok=True)
-    cache_dir = Path(cache_dir) if cache_dir else Config.desde_entorno().media_dir / "origen"
-
-    if modulo_descarga.es_url(str(origen)):
-        fuente = "youtube"
-        referencia = str(origen)
-        _avisar(progreso, "Consultando el video")
-        id_video, titulo_remoto = modulo_descarga.obtener_info(referencia)
-        titulo = titulo or titulo_remoto or "Sin título"
-        _avisar(progreso, "Descargando el audio")
-        completo = modulo_descarga.descargar_audio(referencia, cache_dir, id_video=id_video)
-    else:
-        fuente = "archivo"
-        completo = Path(origen)
-        referencia = completo.name
-        titulo = titulo or completo.stem
-
+    fuente = obtener_audio(origen, cache_dir=cache_dir, titulo=titulo, progreso=progreso)
     _avisar(progreso, "Recortando el fragmento")
-    recorte = recortar(completo, trabajo / "mezcla.wav", inicio_s, fin_s)
+    recorte = recortar(fuente.ruta, trabajo / "mezcla.wav", inicio_s, fin_s)
     fragmento = Fragmento(
-        titulo=titulo, fuente=fuente, referencia=referencia,
+        titulo=fuente.titulo, fuente=fuente.fuente, referencia=fuente.referencia,
         inicio_s=float(inicio_s), fin_s=float(fin_s),
     )
     return recorte, fragmento

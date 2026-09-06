@@ -262,3 +262,31 @@ def test_si_la_separacion_falla_sigue_con_la_mezcla_y_avisa(monkeypatch, cancion
     )
     assert resultado.analisis.separacion == "ninguna"
     assert any("separación" in aviso.lower() for aviso in resultado.avisos)
+
+
+from motor.pipeline import Fuente, obtener_audio
+
+
+def test_obtener_audio_de_un_archivo_local(cancion_larga):
+    fuente = obtener_audio(cancion_larga)
+    assert isinstance(fuente, Fuente)
+    assert fuente.ruta == cancion_larga
+    assert fuente.fuente == "archivo"
+    assert fuente.referencia == "cancion.wav"
+    assert fuente.titulo == "cancion"
+
+
+def test_obtener_audio_de_una_url_descarga_a_la_cache(monkeypatch, cancion_larga, tmp_path):
+    monkeypatch.setattr(modulo_descarga, "descargar_audio", _descarga_falsa(cancion_larga))
+    monkeypatch.setattr(modulo_descarga, "obtener_info", lambda url: ("abc", "Huayno"))
+    fuente = obtener_audio("https://youtu.be/abc", cache_dir=tmp_path / "origen")
+    assert fuente.fuente == "youtube"
+    assert fuente.titulo == "Huayno"
+    assert fuente.referencia == "https://youtu.be/abc"
+    assert fuente.ruta == tmp_path / "origen" / "abc.m4a"
+
+
+def test_obtener_audio_avisa_si_el_archivo_no_existe(tmp_path):
+    with pytest.raises(pipeline.ErrorPipeline) as error:
+        obtener_audio(tmp_path / "no_existe.wav")
+    assert "no existe" in str(error.value)

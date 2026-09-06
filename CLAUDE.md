@@ -18,7 +18,7 @@ El plan fue revisado contra el diseño y contra esta máquina el 2026-09-05; [do
 * **Nada de entornos virtuales.** Intérprete global de Python, `requirements.txt` y un `.bat` de doble clic, igual que el resto de proyectos del espacio de trabajo.
 * **Un solo runner de pruebas:** `py -m pytest -q` corre motor y web (`pytest-django`). No usar `manage.py test`.
 * **Las descargas se guardan y se reutilizan.** `media/origen/<id_de_video>.<ext>`; una canción se baja una sola vez aunque se analicen diez fragmentos, y la misma URL cuelga de la misma `Cancion`.
-* **Un análisis a la vez** (semáforo en `trabajos.py`): la GPU de 4 GB no aguanta dos Demucs. Si se queda sin memoria, se reintenta en CPU antes de renunciar a separar.
+* **Un análisis a la vez** (semáforo en `trabajos.py`): la GPU de 4 GB no aguanta dos Demucs. Si se queda sin memoria, se reintenta en CPU antes de renunciar a separar. Modelo de separación por defecto: `htdemucs_6s` (seis pistas), porque con `htdemucs` la guitarra caía en la misma pista que el viento.
 * **El audio se sirve con `Range`** (`transcripciones/audio_http.py`): sin respuestas 206 no se puede saltar dentro de una canción larga ni reproducir en Safari.
 * **Los subprocesos hablan UTF-8** (`encoding="utf-8"`, `PYTHONUTF8=1`), porque Windows decodifica con cp1252 y un título de YouTube con `♪` rompe la descarga.
 * **Sin autenticación, sin Celery, sin despliegue remoto** por ahora. Están excluidos a propósito, no olvidados.

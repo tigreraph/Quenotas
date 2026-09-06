@@ -166,7 +166,7 @@ def _descarga_falsa(cancion_larga):
 
 
 def _separacion_falsa(ruta_wav, directorio_salida, dispositivo="cpu",
-                      modelo="htdemucs", segmento=None):
+                      modelo="htdemucs_6s", segmento=None):
     destino = Path(directorio_salida) / "other.wav"
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_bytes(Path(ruta_wav).read_bytes())
@@ -186,7 +186,7 @@ def test_analizar_fuente_desde_url_descarga_y_separa(monkeypatch, cancion_larga,
     )
     assert resultado.fragmento.fuente == "youtube"
     assert resultado.fragmento.titulo == "Huayno"
-    assert resultado.analisis.separacion == "htdemucs"
+    assert resultado.analisis.separacion == "htdemucs_6s"
     assert Path(resultado.archivos["melodia_wav"]).exists()
     assert (tmp_path / "origen" / "abc.m4a").exists()      # la descarga queda en la caché
 
@@ -215,7 +215,7 @@ def test_sin_memoria_de_video_la_separacion_reintenta_en_cpu(monkeypatch, cancio
                                                              detector_falso, tmp_path):
     dispositivos = []
 
-    def separar(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs", segmento=None):
+    def separar(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs_6s", segmento=None):
         dispositivos.append(dispositivo)
         if dispositivo == "cuda":
             raise modulo_separacion.ErrorSeparacion("La separación falló: CUDA out of memory")
@@ -228,13 +228,13 @@ def test_sin_memoria_de_video_la_separacion_reintenta_en_cpu(monkeypatch, cancio
         directorio_trabajo=tmp_path / "trabajo", separar=True,
     )
     assert dispositivos == ["cuda", "cpu"]
-    assert resultado.analisis.separacion == "htdemucs"
+    assert resultado.analisis.separacion == "htdemucs_6s"
     assert any("cpu" in aviso.lower() for aviso in resultado.avisos)
 
 
 def test_si_tambien_falla_en_cpu_no_se_avisa_que_corrio_en_cpu(monkeypatch, cancion_larga,
                                                                 detector_falso, tmp_path):
-    def separar(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs", segmento=None):
+    def separar(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs_6s", segmento=None):
         if dispositivo == "cuda":
             raise modulo_separacion.ErrorSeparacion("La separación falló: CUDA out of memory")
         raise modulo_separacion.ErrorSeparacion("modelo corrupto")
@@ -252,7 +252,7 @@ def test_si_tambien_falla_en_cpu_no_se_avisa_que_corrio_en_cpu(monkeypatch, canc
 
 def test_si_la_separacion_falla_sigue_con_la_mezcla_y_avisa(monkeypatch, cancion_larga,
                                                             detector_falso, tmp_path):
-    def revienta(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs", segmento=None):
+    def revienta(ruta_wav, directorio_salida, dispositivo="cpu", modelo="htdemucs_6s", segmento=None):
         raise modulo_separacion.ErrorSeparacion("modelo corrupto")
 
     monkeypatch.setattr(modulo_separacion, "separar_melodia", revienta)

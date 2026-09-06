@@ -12,7 +12,7 @@ def test_devuelve_la_pista_other(monkeypatch, tmp_path):
     salida = tmp_path / "separado"
 
     def simular(comando):
-        destino = salida / "htdemucs" / "recorte"
+        destino = salida / "htdemucs_6s" / "recorte"
         destino.mkdir(parents=True, exist_ok=True)
         (destino / "other.wav").write_bytes(b"RIFF fingido")
         return types.SimpleNamespace(stdout="", stderr="", returncode=0)
@@ -30,7 +30,7 @@ def test_pasa_el_dispositivo_y_el_modelo_al_comando(monkeypatch, tmp_path):
 
     def simular(comando):
         capturado["comando"] = comando
-        destino = tmp_path / "separado" / "htdemucs" / "recorte"
+        destino = tmp_path / "separado" / "htdemucs_6s" / "recorte"
         destino.mkdir(parents=True, exist_ok=True)
         (destino / "other.wav").write_bytes(b"x")
         return types.SimpleNamespace(stdout="", stderr="", returncode=0)
@@ -38,7 +38,7 @@ def test_pasa_el_dispositivo_y_el_modelo_al_comando(monkeypatch, tmp_path):
     monkeypatch.setattr(separacion, "_EJECUTAR", simular)
     separacion.separar_melodia(entrada, tmp_path / "separado", dispositivo="cuda")
     assert "cuda" in capturado["comando"]
-    assert "htdemucs" in capturado["comando"]
+    assert "htdemucs_6s" in capturado["comando"]
     assert "--segment" not in capturado["comando"]
 
 
@@ -49,7 +49,7 @@ def test_pasa_el_segmento_cuando_se_indica(monkeypatch, tmp_path):
 
     def simular(comando):
         capturado["comando"] = comando
-        destino = tmp_path / "separado" / "htdemucs" / "recorte"
+        destino = tmp_path / "separado" / "htdemucs_6s" / "recorte"
         destino.mkdir(parents=True, exist_ok=True)
         (destino / "other.wav").write_bytes(b"x")
         return types.SimpleNamespace(stdout="", stderr="", returncode=0)

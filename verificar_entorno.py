@@ -73,14 +73,14 @@ def demucs_real():
     with tempfile.TemporaryDirectory() as carpeta:
         entrada = Path(carpeta) / "humo.wav"
         sf.write(entrada, _seno(440.0, 5.0, 44100), 44100)
-        comando = [sys.executable, "-m", "demucs", "-n", "htdemucs", "-d", dispositivo,
+        comando = [sys.executable, "-m", "demucs", "-n", "htdemucs_6s", "-d", dispositivo,
                    "--segment", "6", "--out", carpeta, str(entrada)]
         salida = subprocess.run(comando, capture_output=True, text=True,
                                 encoding="utf-8", errors="replace", env=ENTORNO_UTF8)
         if salida.returncode != 0:
             ultima = (salida.stderr or "").strip().splitlines()[-1:]
             raise RuntimeError(ultima[0] if ultima else "demucs falló sin mensaje")
-        esperado = Path(carpeta) / "htdemucs" / "humo" / "other.wav"
+        esperado = Path(carpeta) / "htdemucs_6s" / "humo" / "other.wav"
         if not esperado.exists():
             raise RuntimeError(f"no apareció {esperado}")
     return f"separó en {dispositivo}, modelo descargado"

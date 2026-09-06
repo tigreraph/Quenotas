@@ -31,7 +31,7 @@ def _EJECUTAR(comando):  # noqa: N802
 
 
 def separar_melodia(ruta_wav, directorio_salida, dispositivo: str = "cpu",
-                    modelo: str = "htdemucs", segmento=None) -> Path:
+                    modelo: str = "htdemucs_6s", segmento=None) -> Path:
     ruta_wav = Path(ruta_wav)
     directorio_salida = Path(directorio_salida)
     directorio_salida.mkdir(parents=True, exist_ok=True)

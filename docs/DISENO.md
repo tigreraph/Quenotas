@@ -169,6 +169,8 @@ El análisis se dispara con un botón aparte. Por eso el motor expone el trabajo
 
 Demucs con el modelo `htdemucs` separa el fragmento en voz, batería, bajo y resto. Un instrumento de viento cae en el stem `other`, que es el que se usa como pista melódica.
 
+Desde el 2026-09-05 el modelo por defecto es `htdemucs_6s` (seis pistas): la guitarra y el piano salen a pistas propias y `other` queda con los vientos. Medido con Carabuela: de 23 a 197 notas en 59 s.
+
 Se ejecuta en GPU si hay CUDA disponible y en CPU si no, con aviso de que tardará más. Se omite por completo cuando el usuario marca que el audio ya viene limpio.
 
 Como el fragmento dura entre veinte segundos y un par de minutos, el costo es asumible incluso con 4 GB de VRAM, pasando a Demucs un `--segment` reducido (6 por defecto). Si aun así la tarjeta se queda sin memoria, se reintenta en CPU con aviso; solo si también falla ahí se analiza la mezcla completa, avisando de que el resultado puede mezclar instrumentos. Nunca se corre más de una separación a la vez.

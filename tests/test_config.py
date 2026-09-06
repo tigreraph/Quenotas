@@ -12,6 +12,7 @@ def test_valores_por_defecto_son_los_de_la_quena_en_sol():
     assert config.ventana_mediana == 5
     assert config.max_fragmento_s == 180.0
     assert config.segmento_demucs == 6.0
+    assert config.modelo_separacion == "htdemucs_6s"
 
 
 def test_el_entorno_sobrescribe_los_valores():

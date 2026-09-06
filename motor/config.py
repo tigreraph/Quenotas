@@ -37,7 +37,8 @@ class Config:
     silencio_frase_s: float = 0.6
     max_fragmento_s: float = 180.0
     modelo_afinacion: str = "full"
-    modelo_separacion: str = "htdemucs"
+    # seis pistas: la guitarra y el piano salen de 'other' y el viento queda limpio
+    modelo_separacion: str = "htdemucs_6s"
     segmento_demucs: float = 6.0     # Demucs lo recomienda por debajo de 8 GB de VRAM
 
     def __post_init__(self):

@@ -1,3 +1,5 @@
+# Pensado para Python 3.14 con el intérprete global (sin entorno virtual).
+# ffmpeg y ffprobe no están acá: se instalan aparte y deben quedar en el PATH.
 Django>=5.2
 numpy>=2.1
 scipy>=1.14

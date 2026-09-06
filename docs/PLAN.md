@@ -1,4 +1,4 @@
-# SacaNotas: plan de implementación
+# Quenotas: plan de implementación
 
 > **Para agentes ejecutores:** SUB-SKILL OBLIGATORIA: usar `superpowers:subagent-driven-development` (recomendada) o `superpowers:executing-plans` para implementar este plan tarea por tarea. Los pasos usan casillas (`- [ ]`) para seguimiento.
 
@@ -16,7 +16,7 @@ Todas las tareas heredan estas reglas.
 
 - **Intérprete:** `C:\Users\Raphael Tigre\AppData\Local\Python\pythoncore-3.14-64\python.exe` (Python 3.14.7), invocable como `py`. **Nunca crear entorno virtual.**
 - **Binarios externos:** `ffmpeg` y `ffprobe` 9.0 ya están en el PATH. No se empaquetan.
-- **Raíz del proyecto:** `D:\Documentos\claude proyectos\SacaNotas`
+- **Raíz del proyecto:** `D:\Documentos\claude proyectos\Quenotas`
 - **`motor/` no puede importar `django` ni nada de `web/`.** Si un test necesita Django para probar el motor, el diseño está mal.
 - **Tiempos relativos.** En el contrato, `inicio_s` de cada nota y de cada frase es **relativo al inicio del fragmento** (0 = primer instante del recorte). El desplazamiento dentro de la canción vive solo en `fragmento.inicio_s`. La pantalla muestra la suma. Esto es obligatorio porque los WAV generados empiezan en 0 y el reproductor del navegador lee `currentTime`, que también empieza en 0.
 - **Nombres de nota en cifrado anglosajón** con Do central en `C4` (MIDI 60). Ejemplos: MIDI 67 es `G4`, MIDI 91 es `G6`.
@@ -33,7 +33,7 @@ Todas las tareas heredan estas reglas.
 ## Estructura de archivos
 
 ```
-SacaNotas/
+Quenotas/
   motor/
     __init__.py
     config.py          # parámetros desde variables de entorno
@@ -62,7 +62,7 @@ SacaNotas/
     fijos/             # grabaciones reales de referencia (sí entran a git)
   web/
     manage.py
-    sacanotas/         # settings.py, urls.py, wsgi.py
+    quenotas/         # settings.py, urls.py, wsgi.py
     transcripciones/   # models.py, views.py, urls.py, formularios.py, trabajos.py,
                        # management/commands/recuperar_trabajos.py, tests_*.py, templates/
     static/            # pianoroll.js, estilo.css
@@ -100,7 +100,7 @@ Verificado el 2026-09-05: `demucs` 4.1.0, `pretty_midi` 0.2.11.post0, `torch` 2.
 - [ ] **Paso 1: Inicializar el repositorio**
 
 ```bash
-cd "D:/Documentos/claude proyectos/SacaNotas"
+cd "D:/Documentos/claude proyectos/Quenotas"
 git init
 git add CLAUDE.md docs/DISENO.md docs/PLAN.md
 git commit -m "chore: diseño y plan iniciales"
@@ -166,7 +166,7 @@ py -m pip install -r requirements.txt
 - [ ] **Paso 6: Crear `verificar_entorno.py`**
 
 ```python
-"""Comprueba que todo lo que SacaNotas necesita está instalado y funciona.
+"""Comprueba que todo lo que Quenotas necesita está instalado y funciona.
 
 No se limita a importar: pasa un seno por CREPE y un WAV corto por Demucs.
 Así los pesos de los dos modelos quedan descargados desde el principio y
@@ -303,7 +303,7 @@ Esperado: todas las líneas con `OK` y `Entorno completo.` La primera vez tarda 
 
 Si `torch` reporta `CUDA=False`, comprobar que el paso 5 se hizo en el orden indicado y que el controlador de NVIDIA está al día. Si aun así sale `False`, dejarlo así y anotarlo: el proyecto funciona en CPU, solo más lento.
 
-Si "Demucs sobre 5 s" falla con `out of memory`, bajar `--segment` a 4 en el script y anotar el valor: es el mismo que irá en `SACANOTAS_SEGMENTO_DEMUCS`.
+Si "Demucs sobre 5 s" falla con `out of memory`, bajar `--segment` a 4 en el script y anotar el valor: es el mismo que irá en `QUENOTAS_SEGMENTO_DEMUCS`.
 
 - [ ] **Paso 8: Crear los paquetes vacíos**
 
@@ -450,7 +450,7 @@ Esperado: FALLA con `ModuleNotFoundError: No module named 'motor.contrato'`
 Crear `motor/contrato.py`:
 
 ```python
-"""Contrato de datos de SacaNotas.
+"""Contrato de datos de Quenotas.
 
 Todas las piezas del sistema producen y consumen estas estructuras.
 Los tiempos son relativos al inicio del fragmento: 0 es el primer
@@ -658,9 +658,9 @@ def test_valores_por_defecto_son_los_de_la_quena_en_sol():
 
 def test_el_entorno_sobrescribe_los_valores():
     config = Config.desde_entorno({
-        "SACANOTAS_FMIN_HZ": "130.81",
-        "SACANOTAS_MEDIA": "D:/tmp/media",
-        "SACANOTAS_UMBRAL_CONFIANZA": "0.7",
+        "QUENOTAS_FMIN_HZ": "130.81",
+        "QUENOTAS_MEDIA": "D:/tmp/media",
+        "QUENOTAS_UMBRAL_CONFIANZA": "0.7",
     })
     assert config.fmin_hz == 130.81
     assert config.umbral_confianza == 0.7
@@ -669,7 +669,7 @@ def test_el_entorno_sobrescribe_los_valores():
 
 def test_la_ventana_de_mediana_debe_ser_impar():
     try:
-        Config.desde_entorno({"SACANOTAS_VENTANA_MEDIANA": "4"})
+        Config.desde_entorno({"QUENOTAS_VENTANA_MEDIANA": "4"})
     except ValueError as error:
         assert "impar" in str(error)
     else:
@@ -741,21 +741,21 @@ class Config:
 
     @staticmethod
     def desde_entorno(entorno=None) -> "Config":
-        """Lee SACANOTAS_<CAMPO> para cada campo; lo que no esté, queda en su
+        """Lee QUENOTAS_<CAMPO> para cada campo; lo que no esté, queda en su
         valor por defecto de la dataclass. Los tipos salen de la anotación."""
         entorno = os.environ if entorno is None else entorno
         conversores = {"Path": Path, "str": str, "int": int, "float": float}
         valores = {}
         for nombre, campo in Config.__dataclass_fields__.items():
-            bruto = entorno.get(f"SACANOTAS_{nombre.upper()}")
+            bruto = entorno.get(f"QUENOTAS_{nombre.upper()}")
             if nombre == "media_dir":
-                bruto = entorno.get("SACANOTAS_MEDIA", bruto)
+                bruto = entorno.get("QUENOTAS_MEDIA", bruto)
             if bruto is not None:
                 valores[nombre] = conversores[campo.type](bruto)
         return Config(**valores)
 ```
 
-`campo.type` es una cadena porque el módulo usa `from __future__ import annotations`; por eso el diccionario de conversores se indexa por nombre de tipo. La variable `SACANOTAS_MEDIA` se conserva como alias de `SACANOTAS_MEDIA_DIR` porque es la que usa el `.bat`.
+`campo.type` es una cadena porque el módulo usa `from __future__ import annotations`; por eso el diccionario de conversores se indexa por nombre de tipo. La variable `QUENOTAS_MEDIA` se conserva como alias de `QUENOTAS_MEDIA_DIR` porque es la que usa el `.bat`.
 
 - [ ] **Paso 4: Ejecutar los tests y verificar que pasan**
 
@@ -1703,7 +1703,7 @@ def test_registra_la_afinacion_del_instrumento_y_avisa_si_es_grande(recorte, mon
 
 
 def test_rechaza_un_fragmento_mas_largo_que_el_limite(recorte, detector_falso):
-    config = Config.desde_entorno({"SACANOTAS_MAX_FRAGMENTO_S": "1.0"})
+    config = Config.desde_entorno({"QUENOTAS_MAX_FRAGMENTO_S": "1.0"})
     with pytest.raises(pipeline.ErrorPipeline) as error:
         pipeline.analizar_recorte(recorte, _fragmento(), config=config, separar=False)
     assert "180" in str(error.value) or "1.0" in str(error.value)
@@ -1998,7 +1998,7 @@ def a_midi(frases, ruta, programa: int = PROGRAMA_FLAUTA, velocidad: int = 90) -
 def _lineas_de_texto(resultado) -> list[str]:
     desplazamiento = resultado.fragmento.inicio_s
     lineas = [
-        "SacaNotas",
+        "Quenotas",
         f"Canción: {resultado.fragmento.titulo}",
         f"Fuente: {resultado.fragmento.referencia}",
         f"Fragmento: {formato_tiempo(resultado.fragmento.inicio_s)} a "
@@ -3209,7 +3209,7 @@ git commit -m "feat: pipeline completo con descarga, recorte y separación"
 ### Tarea 15: Proyecto Django y modelos
 
 **Archivos:**
-- Crear: `web/manage.py`, `web/sacanotas/settings.py`, `web/sacanotas/urls.py`, `web/sacanotas/wsgi.py`, `web/sacanotas/__init__.py`
+- Crear: `web/manage.py`, `web/quenotas/settings.py`, `web/quenotas/urls.py`, `web/quenotas/wsgi.py`, `web/quenotas/__init__.py`
 - Crear: `web/transcripciones/models.py`, `web/transcripciones/admin.py`, `web/transcripciones/apps.py`, `web/transcripciones/__init__.py`, `web/transcripciones/migrations/__init__.py`
 - Test: `web/transcripciones/tests_modelos.py`
 
@@ -3223,8 +3223,8 @@ git commit -m "feat: pipeline completo con descarga, recorte y separación"
 - [ ] **Paso 1: Crear el proyecto**
 
 ```bash
-cd "D:/Documentos/claude proyectos/SacaNotas"
-py -m django startproject sacanotas web
+cd "D:/Documentos/claude proyectos/Quenotas"
+py -m django startproject quenotas web
 cd web
 py manage.py startapp transcripciones
 del transcripciones\tests.py
@@ -3234,7 +3234,7 @@ del transcripciones\tests.py
 
 Después, **borrar la primera línea de `web/manage.py`** (el shebang `#!/usr/bin/env python`). Motivo, visto en esta máquina: el launcher `py` respeta el shebang y busca `python` en el PATH, que aquí es un Python 3.13 sin Django, así que `py web/manage.py ...` fallaba con "Couldn't import Django". Sin shebang, `py` usa su intérprete por defecto (3.14), que es el del proyecto. El proyecto es solo Windows y lo lanza un `.bat`, así que el shebang no sirve para nada.
 
-- [ ] **Paso 2: Ajustar `web/sacanotas/settings.py`**
+- [ ] **Paso 2: Ajustar `web/quenotas/settings.py`**
 
 Sustituir o añadir estas partes:
 
@@ -3246,7 +3246,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RAIZ_PROYECTO = BASE_DIR.parent
 sys.path.insert(0, str(RAIZ_PROYECTO))   # para poder importar motor/
 
-SECRET_KEY = "sacanotas-local-no-secreta"
+SECRET_KEY = "quenotas-local-no-secreta"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]      # uso local en la red de casa
 
@@ -3287,7 +3287,7 @@ Sustituir `pytest.ini` de la raíz por:
 
 ```ini
 [pytest]
-DJANGO_SETTINGS_MODULE = sacanotas.settings
+DJANGO_SETTINGS_MODULE = quenotas.settings
 pythonpath = . web
 testpaths = tests web
 python_files = test_*.py tests_*.py
@@ -3925,7 +3925,7 @@ git commit -m "feat: análisis en segundo plano de uno en uno, con estado consul
 
 **Archivos:**
 - Crear: `web/transcripciones/formularios.py`, `web/transcripciones/views.py`, `web/transcripciones/urls.py`
-- Modificar: `web/sacanotas/urls.py`
+- Modificar: `web/quenotas/urls.py`
 - Crear: `web/transcripciones/templates/transcripciones/base.html`, `index.html`, `detalle.html`
 - Test: `web/transcripciones/tests_vistas.py`
 
@@ -4288,7 +4288,7 @@ urlpatterns = [
 ]
 ```
 
-Sustituir `web/sacanotas/urls.py`:
+Sustituir `web/quenotas/urls.py`:
 
 ```python
 from django.conf import settings
@@ -4319,13 +4319,13 @@ Crear `web/transcripciones/templates/transcripciones/base.html`:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}SacaNotas{% endblock %}</title>
+  <title>{% block titulo %}Quenotas{% endblock %}</title>
   {% load static %}
   <link rel="stylesheet" href="{% static 'estilo.css' %}">
 </head>
 <body>
   <header>
-    <a href="{% url 'index' %}"><strong>SacaNotas</strong></a>
+    <a href="{% url 'index' %}"><strong>Quenotas</strong></a>
     <a href="{% url 'historial' %}">Historial</a>
   </header>
   <main>{% block contenido %}{% endblock %}</main>
@@ -4984,7 +4984,7 @@ Cierra el proyecto: que se abra sin consola, que se pueda usar desde el móvil e
 ```bat
 @echo off
 cd /d "%~dp0"
-echo Iniciando SacaNotas...
+echo Iniciando Quenotas...
 echo.
 py web\manage.py migrate --noinput
 py web\manage.py recuperar_trabajos
@@ -5050,7 +5050,7 @@ def test_la_escala_de_sol_se_reconoce_completa():
         FIJO,
         Fragmento(titulo="Calibración", fuente="archivo", referencia=FIJO.name,
                   inicio_s=0.0, fin_s=10.0),
-        config=Config.desde_entorno({"SACANOTAS_DISPOSITIVO": "cpu"}),
+        config=Config.desde_entorno({"QUENOTAS_DISPOSITIVO": "cpu"}),
         separar=False,
     )
     detectadas = [nota.nombre for nota in resultado.notas]
@@ -5064,7 +5064,7 @@ def test_la_afinacion_de_la_quena_no_se_desvia_demasiado():
         FIJO,
         Fragmento(titulo="Calibración", fuente="archivo", referencia=FIJO.name,
                   inicio_s=0.0, fin_s=10.0),
-        config=Config.desde_entorno({"SACANOTAS_DISPOSITIVO": "cpu"}),
+        config=Config.desde_entorno({"QUENOTAS_DISPOSITIVO": "cpu"}),
         separar=False,
     )
     desviaciones = [abs(nota.cents) for nota in resultado.notas]

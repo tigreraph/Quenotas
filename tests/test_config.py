@@ -17,9 +17,9 @@ def test_valores_por_defecto_son_los_de_la_quena_en_sol():
 
 def test_el_entorno_sobrescribe_los_valores():
     config = Config.desde_entorno({
-        "SACANOTAS_FMIN_HZ": "130.81",
-        "SACANOTAS_MEDIA": "D:/tmp/media",
-        "SACANOTAS_UMBRAL_CONFIANZA": "0.7",
+        "QUENOTAS_FMIN_HZ": "130.81",
+        "QUENOTAS_MEDIA": "D:/tmp/media",
+        "QUENOTAS_UMBRAL_CONFIANZA": "0.7",
     })
     assert config.fmin_hz == 130.81
     assert config.umbral_confianza == 0.7
@@ -28,7 +28,7 @@ def test_el_entorno_sobrescribe_los_valores():
 
 def test_la_ventana_de_mediana_debe_ser_impar():
     try:
-        Config.desde_entorno({"SACANOTAS_VENTANA_MEDIANA": "4"})
+        Config.desde_entorno({"QUENOTAS_VENTANA_MEDIANA": "4"})
     except ValueError as error:
         assert "impar" in str(error)
     else:

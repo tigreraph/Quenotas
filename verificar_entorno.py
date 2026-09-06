@@ -1,4 +1,4 @@
-"""Comprueba que todo lo que SacaNotas necesita está instalado y funciona.
+"""Comprueba que todo lo que Quenotas necesita está instalado y funciona.
 
 No se limita a importar: pasa un seno por CREPE y un WAV corto por Demucs.
 Así los pesos de los dos modelos quedan descargados desde el principio y

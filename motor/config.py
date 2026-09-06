@@ -49,15 +49,15 @@ class Config:
 
     @staticmethod
     def desde_entorno(entorno=None) -> "Config":
-        """Lee SACANOTAS_<CAMPO> para cada campo; lo que no esté, queda en su
+        """Lee QUENOTAS_<CAMPO> para cada campo; lo que no esté, queda en su
         valor por defecto de la dataclass. Los tipos salen de la anotación."""
         entorno = os.environ if entorno is None else entorno
         conversores = {"Path": Path, "str": str, "int": int, "float": float}
         valores = {}
         for nombre, campo in Config.__dataclass_fields__.items():
-            bruto = entorno.get(f"SACANOTAS_{nombre.upper()}")
+            bruto = entorno.get(f"QUENOTAS_{nombre.upper()}")
             if nombre == "media_dir":
-                bruto = entorno.get("SACANOTAS_MEDIA", bruto)
+                bruto = entorno.get("QUENOTAS_MEDIA", bruto)
             if bruto is not None:
                 valores[nombre] = conversores[campo.type](bruto)
         return Config(**valores)

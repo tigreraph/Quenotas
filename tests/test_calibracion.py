@@ -23,7 +23,7 @@ def test_la_escala_de_sol_se_reconoce_completa():
         FIJO,
         Fragmento(titulo="Calibración", fuente="archivo", referencia=FIJO.name,
                   inicio_s=0.0, fin_s=10.0),
-        config=Config.desde_entorno({"SACANOTAS_DISPOSITIVO": "cpu"}),
+        config=Config.desde_entorno({"QUENOTAS_DISPOSITIVO": "cpu"}),
         separar=False,
     )
     detectadas = [nota.nombre for nota in resultado.notas]
@@ -37,7 +37,7 @@ def test_la_afinacion_de_la_quena_no_se_desvia_demasiado():
         FIJO,
         Fragmento(titulo="Calibración", fuente="archivo", referencia=FIJO.name,
                   inicio_s=0.0, fin_s=10.0),
-        config=Config.desde_entorno({"SACANOTAS_DISPOSITIVO": "cpu"}),
+        config=Config.desde_entorno({"QUENOTAS_DISPOSITIVO": "cpu"}),
         separar=False,
     )
     desviaciones = [abs(nota.cents) for nota in resultado.notas]

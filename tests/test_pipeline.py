@@ -75,7 +75,7 @@ def test_registra_la_afinacion_del_instrumento_y_avisa_si_es_grande(recorte, mon
 
 
 def test_rechaza_un_fragmento_mas_largo_que_el_limite(recorte, detector_falso):
-    config = Config.desde_entorno({"SACANOTAS_MAX_FRAGMENTO_S": "1.0"})
+    config = Config.desde_entorno({"QUENOTAS_MAX_FRAGMENTO_S": "1.0"})
     with pytest.raises(pipeline.ErrorPipeline) as error:
         pipeline.analizar_recorte(recorte, _fragmento(), config=config, separar=False)
     assert "180" in str(error.value) or "1.0" in str(error.value)

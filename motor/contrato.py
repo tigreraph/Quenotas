@@ -1,4 +1,4 @@
-"""Contrato de datos de SacaNotas.
+"""Contrato de datos de Quenotas.
 
 Todas las piezas del sistema producen y consumen estas estructuras.
 Los tiempos son relativos al inicio del fragmento: 0 es el primer

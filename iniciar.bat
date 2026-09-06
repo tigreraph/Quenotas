@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Iniciando SacaNotas...
+echo Iniciando Quenotas...
 echo.
 py web\manage.py migrate --noinput
 if errorlevel 1 (

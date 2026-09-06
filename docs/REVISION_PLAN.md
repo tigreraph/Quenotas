@@ -27,7 +27,7 @@ Lo que se verificó en la máquina (2026-09-05):
 | `torch` 2.14 para Python 3.14 en Windows | rueda en PyPI (CPU) y en los índices `cu126` y `cu130` |
 | `numba` (arrastrado por `torchcrepe` vía `librosa`) | 0.67.0 tiene rueda `cp314` para Windows |
 | `ffmpeg -ss 1.000 -to 2.500 -i a.wav` (opciones de entrada) | produce 1.500 s exactos. La tarea 6 está bien |
-| `py -m django startproject sacanotas web` sin que exista `web/` | Django 6.1 crea la carpeta. La tarea 15 está bien |
+| `py -m django startproject quenotas web` sin que exista `web/` | Django 6.1 crea la carpeta. La tarea 15 está bien |
 | `{{ 0.4 }}` en plantilla con `LANGUAGE_CODE = "es"` | renderiza `0,4`. Ver A4 |
 | `pretty_midi` releyendo un MIDI con instrumento sin notas | `instruments` queda vacío. Ver A2 |
 
@@ -55,7 +55,7 @@ Corregir en `PLAN.md` antes de ejecutar la tarea afectada.
 
 **Arreglo (dos opciones, elegir una):**
 1. Meter las dos funciones en una clase `PruebaTiempos(SimpleTestCase)` usando `self.assertRaises`.
-2. Mejor: unificar todo con `pytest-django`. En `pytest.ini`: `DJANGO_SETTINGS_MODULE = sacanotas.settings`, `pythonpath = . web`, `testpaths = tests web`. Un solo comando (`py -m pytest`), un solo estilo de assert, y desaparece la regla "tests del motor con pytest, tests de Django con manage.py". Añadir `pytest-django` a `requirements.txt`.
+2. Mejor: unificar todo con `pytest-django`. En `pytest.ini`: `DJANGO_SETTINGS_MODULE = quenotas.settings`, `pythonpath = . web`, `testpaths = tests web`. Un solo comando (`py -m pytest`), un solo estilo de assert, y desaparece la regla "tests del motor con pytest, tests de Django con manage.py". Añadir `pytest-django` a `requirements.txt`.
 
 También en la tarea 2: el conteo "9 tests pasan" es 11 (6 parametrizados más 5).
 
@@ -124,7 +124,7 @@ El `--noreload` importa por C3: el recargador automático mata el hilo de análi
 
 `DISENO.md` §10: "Sin GPU o VRAM insuficiente: cae a CPU automáticamente, avisando que tardará más". `PLAN.md` tarea 14: si `separar_melodia` lanza `ErrorSeparacion`, se analiza la mezcla completa sin separar. Con 4 GB de VRAM el `CUDA out of memory` de Demucs es un caso esperable, no raro, y perder la separación es perder la función principal para canciones de banda.
 
-**Arreglo en `analizar_preparado`:** si el error contiene `out of memory` y el dispositivo era `cuda`, reintentar con `dispositivo="cpu"` y añadir el aviso "la separación corrió en CPU por falta de memoria de video"; solo si también falla en CPU, caer a la mezcla. Añadir el test correspondiente en la tarea 14. Además pasar `--segment 6` a Demucs cuando el dispositivo es `cuda` (Demucs lo recomienda por debajo de 8 GB); dejarlo en `Config` como `SACANOTAS_SEGMENTO_DEMUCS`.
+**Arreglo en `analizar_preparado`:** si el error contiene `out of memory` y el dispositivo era `cuda`, reintentar con `dispositivo="cpu"` y añadir el aviso "la separación corrió en CPU por falta de memoria de video"; solo si también falla en CPU, caer a la mezcla. Añadir el test correspondiente en la tarea 14. Además pasar `--segment 6` a Demucs cuando el dispositivo es `cuda` (Demucs lo recomienda por debajo de 8 GB); dejarlo en `Config` como `QUENOTAS_SEGMENTO_DEMUCS`.
 
 ### B2. Los modelos se descargan en la primera petición, no al arrancar
 
@@ -228,7 +228,7 @@ Dos G4 seguidos con lengüeteo, sin que la confianza de CREPE baje del umbral en
 
 ### D3. Demucs y los instrumentos de viento (tarea 13)
 
-El plan da por hecho que la quena cae en `other.wav`. Con instrumentos de viento con aire (quena, zampoña) Demucs reparte parte de la señal a `vocals.wav`, porque se parece a una voz. Si pasa, la melodía aislada sonará apagada y CREPE perderá confianza. **Arreglo:** en la prueba manual de la tarea 13, escuchar también `vocals.wav`. Dejar en `Config` un `SACANOTAS_STEMS = "other"` que admita `"other,vocals"` y en `separar_melodia` sumar los stems indicados. Decidirlo con la primera canción real, no antes.
+El plan da por hecho que la quena cae en `other.wav`. Con instrumentos de viento con aire (quena, zampoña) Demucs reparte parte de la señal a `vocals.wav`, porque se parece a una voz. Si pasa, la melodía aislada sonará apagada y CREPE perderá confianza. **Arreglo:** en la prueba manual de la tarea 13, escuchar también `vocals.wav`. Dejar en `Config` un `QUENOTAS_STEMS = "other"` que admita `"other,vocals"` y en `separar_melodia` sumar los stems indicados. Decidirlo con la primera canción real, no antes.
 
 ### D4. Sonificación con seno puro (tarea 10)
 

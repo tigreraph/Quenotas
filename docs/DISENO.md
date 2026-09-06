@@ -1,4 +1,4 @@
-# SacaNotas: diseño del sistema
+# Quenotas: diseño del sistema
 
 **Fecha:** 2026-09-05
 **Estado:** diseño aprobado; plan escrito y revisado el 2026-09-05 (`PLAN.md`, `REVISION_PLAN.md`)
@@ -62,7 +62,7 @@ La tercera pista es la herramienta de verificación: si suena igual que la melod
 Dos capas con separación estricta. El motor no importa nada de Django y no sabe que existe una interfaz web.
 
 ```
-SacaNotas/
+Quenotas/
   motor/                  # Python puro, sin dependencias de Django
     config.py             # parámetros por variable de entorno
     descarga.py           # yt-dlp + ffmpeg: obtener y recortar el fragmento
@@ -72,7 +72,7 @@ SacaNotas/
     exportar.py           # MIDI, TXT, PDF, sonificación WAV
     pipeline.py           # orquesta las etapas y devuelve el Resultado
   web/                    # proyecto Django
-    sacanotas/            # settings, urls
+    quenotas/            # settings, urls
     transcripciones/      # app: modelos, vistas, plantillas
     static/
       pianoroll.js        # lienzo de notas sincronizado con la reproducción
@@ -330,6 +330,6 @@ Anotadas en la revisión del plan del 2026-09-05 para no descubrirlas con una ca
 
 **Notas repetidas.** El segmentador solo mira altura y confianza. Dos G4 seguidos con lengüeteo, sin que la confianza de CREPE baje entre ellos, salen como un único G4 largo. En huaynos y sanjuanitos las notas repetidas son constantes. La solución es una señal de energía: RMS por trama con el mismo salto de 10 ms, y partir una nota cuando la energía cae más de 6 dB respecto a su pico local y vuelve a subir. Queda como fase 5, después de calibrar con la quena real. Mientras tanto, la pantalla de resultado lo advierte.
 
-**Demucs y los instrumentos de viento.** El diseño da por hecho que la quena cae en la pista `other`. Con instrumentos de viento con aire (quena, zampoña), Demucs a veces manda parte de la señal a `vocals`, porque se parece a una voz; si pasa, la melodía aislada suena apagada y CREPE pierde confianza. Se decide con la primera canción real: escuchar `other.wav` y `vocals.wav`, y si la melodía se reparte, sumar ambas pistas (parámetro `SACANOTAS_STEMS`). No se implementa antes de verlo.
+**Demucs y los instrumentos de viento.** El diseño da por hecho que la quena cae en la pista `other`. Con instrumentos de viento con aire (quena, zampoña), Demucs a veces manda parte de la señal a `vocals`, porque se parece a una voz; si pasa, la melodía aislada suena apagada y CREPE pierde confianza. Se decide con la primera canción real: escuchar `other.wav` y `vocals.wav`, y si la melodía se reparte, sumar ambas pistas (parámetro `QUENOTAS_STEMS`). No se implementa antes de verlo.
 
 **Histéresis en el cambio de nota.** La compensación del desvío global (7.5, paso 3) resuelve el caso de un instrumento afinado distinto. Si además una nota concreta queda entre dos semitonos y el redondeo la parte, el siguiente recurso es histéresis: cambiar de nota solo cuando el desvío supera medio semitono más un margen. Está anotado en la tabla de calibración del plan y no se implementa hasta que el material real lo pida.

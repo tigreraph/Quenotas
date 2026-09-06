@@ -1,4 +1,4 @@
-# SacaNotas
+# Quenotas
 
 Herramienta local para extraer la melodía de un fragmento de audio y devolverla como lista de notas, MIDI, TXT y PDF. Pensada para sacar canciones de oído con la quena sin perder una semana de tanteo.
 

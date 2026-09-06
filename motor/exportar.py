@@ -38,7 +38,7 @@ def a_midi(frases, ruta, programa: int = PROGRAMA_FLAUTA, velocidad: int = 90) -
 def _lineas_de_texto(resultado) -> list[str]:
     desplazamiento = resultado.fragmento.inicio_s
     lineas = [
-        "SacaNotas",
+        "Quenotas",
         f"Canción: {resultado.fragmento.titulo}",
         f"Fuente: {resultado.fragmento.referencia}",
         f"Fragmento: {formato_tiempo(resultado.fragmento.inicio_s)} a "

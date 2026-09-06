@@ -1111,7 +1111,7 @@ def test_parsear_tiempo_rechaza_basura():
 # MEDIA_ROOT temporal para toda la clase: las vistas de onda y escucha miran el
 # disco, y con el media/ real un archivo dejado por una prueba manual haría
 # pasar o fallar tests según lo que haya en la carpeta.
-@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="sacanotas-tests-"))
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="quenotas-tests-"))
 class PruebaVistas(TestCase):
     def setUp(self):
         self.cancion = Cancion.objects.create(
@@ -1788,7 +1788,7 @@ En `web/transcripciones/trabajos.py`, borrar el bloque de "Alias provisionales" 
 ```html
 {% extends "transcripciones/base.html" %}
 {% load static %}
-{% block titulo %}{{ cancion }} · SacaNotas{% endblock %}
+{% block titulo %}{{ cancion }} · Quenotas{% endblock %}
 {% block contenido %}
 <h1>{{ cancion }}</h1>
 

@@ -1,4 +1,4 @@
-# SacaNotas: selector de frases sobre la forma de onda
+# Quenotas: selector de frases sobre la forma de onda
 
 **Fecha:** 2026-09-05
 **Estado:** implementado (ver PLAN_SELECTOR_DE_FRASES.md)

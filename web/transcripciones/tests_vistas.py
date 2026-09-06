@@ -359,6 +359,7 @@ class PruebaVistas(TestCase):
         assert [nota["nombre"] for nota in datos["notas"]] == ["G4", "B4"]
         assert [nota["etiqueta"] for nota in datos["notas"]] == ["alta", "baja"]
         assert datos["notas"][0]["cents"] == -12
+        assert [nota["frase"] for nota in datos["notas"]] == [1, 2]
         assert [frase["indice"] for frase in datos["frases"]] == [1, 2]
         assert datos["pistas"] == []
 

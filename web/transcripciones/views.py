@@ -282,6 +282,7 @@ def datos(request, pk):
                 "confianza": nota.confianza,
                 "etiqueta": nota.etiqueta_confianza,
                 "cents": nota.cents,
+                "frase": nota.frase,
             }
             for nota in fragmento.notas.all()
         ],

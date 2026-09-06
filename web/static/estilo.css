@@ -54,7 +54,7 @@ tr.sonando { background: #232a36; }
 tr.seleccionada { outline: 1px solid var(--acento); outline-offset: -1px; }
 audio { width: 100%; margin: 1rem 0; }
 .lienzo-scroll { overflow-x: auto; border-radius: 8px; }
-#lienzo-notas canvas { display: block; height: 320px; background: var(--panel); border-radius: 8px; }
+#lienzo-notas canvas { display: block; background: var(--panel); border-radius: 8px; }
 .pistas, .controles { display: flex; gap: 1rem; color: var(--tenue); margin-top: 0.5rem; flex-wrap: wrap; }
 .controles select { background: var(--panel); color: var(--texto); border: 1px solid #2a2e37; border-radius: 6px; padding: 0.2rem 0.4rem; }
 .nota-actual { font-family: ui-monospace, monospace; color: var(--acento); }

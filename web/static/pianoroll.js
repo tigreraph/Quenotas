@@ -8,9 +8,11 @@
   if (!contenedor) return;
 
   const COLORES = { alta: "#4ec98a", media: "#e0b341", baja: "#e06a5c" };
-  const MARGEN_V = 8;
   const MARGEN_IZQ = 44;
-  const ANCHO_MIN_NOMBRE = 18;
+  const ALTO_CARRIL = 22; // alto fijo por semitono; el canvas mide carriles × este valor
+  const FUENTE_CARRIL = "12px ui-monospace, monospace";
+  const FUENTE_NOTA = "bold 13px ui-monospace, monospace";
+  const HOLGURA_NOMBRE = 6; // el nombre se dibuja si el bloque supera measureText(nombre).width + esto
   const VELOCIDADES = [0.5, 0.75, 1];
   const OPCIONES_ZOOM = [
     { etiqueta: "5 s", segundos: 5 },
@@ -67,11 +69,11 @@
     controles.append(etiquetaVelocidad);
 
     // Zoom horizontal: cuántos segundos entran en el ancho visible. "Todo"
-    // muestra la duración completa. Por defecto 10 s, o Todo si dura menos.
+    // muestra la duración completa. Por defecto 5 s, o Todo si dura menos.
     const zoom = document.createElement("select");
-    const indicePorDefecto = datos.duracion_s < 10
+    const indicePorDefecto = datos.duracion_s < 5
       ? OPCIONES_ZOOM.findIndex((o) => o.etiqueta === "Todo")
-      : OPCIONES_ZOOM.findIndex((o) => o.etiqueta === "10 s");
+      : OPCIONES_ZOOM.findIndex((o) => o.etiqueta === "5 s");
     OPCIONES_ZOOM.forEach((opcion, indice) => {
       const el = document.createElement("option");
       el.value = indice;
@@ -133,53 +135,86 @@
     const alturas = datos.notas.map((nota) => nota.midi);
     const minimo = alturas.length ? Math.min(...alturas) - 1 : 59;
     const maximo = alturas.length ? Math.max(...alturas) + 1 : 73;
+    const numCarriles = maximo - minimo + 1;
+    canvas.style.height = `${numCarriles * ALTO_CARRIL}px`;
+
     const fichas = [...document.querySelectorAll(".ficha[data-orden]")];
     const fichaPorOrden = new Map(fichas.map((ficha) => [Number(ficha.dataset.orden), ficha]));
     const filas = [...document.querySelectorAll("table.notas tbody tr[data-orden]")];
     const filaPorOrden = new Map(filas.map((fila) => [Number(fila.dataset.orden), fila]));
     const notaPorOrden = new Map(datos.notas.map((nota) => [nota.orden, nota]));
 
-    // pps (píxeles por segundo) y la altura de fila viven fuera de dibujar()
-    // porque el clic en el lienzo necesita las mismas coordenadas que el
-    // último dibujo, sin esperar al siguiente cuadro.
+    // pps (píxeles por segundo) vive fuera de dibujar() porque el clic en el
+    // lienzo necesita las mismas coordenadas que el último dibujo, sin
+    // esperar al siguiente cuadro.
     let pps = 40;
-    let altoFilaActual = 10;
     const aX = (segundos) => MARGEN_IZQ + segundos * pps;
-    const aY = (midi) => MARGEN_V + (maximo - midi) * altoFilaActual;
+    const aY = (midi) => (maximo - midi) * ALTO_CARRIL;
+    const cajaDeNota = (nota) => ({
+      x: aX(nota.inicio_s),
+      y: aY(nota.midi),
+      ancho: Math.max(2, nota.duracion_s * pps),
+      alto: Math.max(3, ALTO_CARRIL - 2),
+    });
+
+    const desplazarSiHaceFalta = (x) => {
+      const visibleIzq = scroll.scrollLeft;
+      const visibleDer = visibleIzq + scroll.clientWidth;
+      if (x < visibleIzq || x > visibleDer) {
+        scroll.scrollLeft = Math.max(0, x - scroll.clientWidth * 0.2);
+      }
+    };
 
     const ajustarZoom = () => {
       const opcion = OPCIONES_ZOOM[Number(zoom.value)];
       const segundosVisibles = opcion.segundos == null ? Math.max(datos.duracion_s, 0.001) : opcion.segundos;
       const anchoVisible = scroll.clientWidth || 600;
-      pps = anchoVisible / segundosVisibles;
+      pps = (anchoVisible - MARGEN_IZQ) / segundosVisibles;
       canvas.style.width = `${MARGEN_IZQ + datos.duracion_s * pps}px`;
-      // Al cambiar el zoom, el cursor se mantiene a la vista.
-      scroll.scrollLeft = Math.max(0, aX(reproductor.currentTime) - scroll.clientWidth * 0.2);
+      // Al cambiar el zoom (o el tamaño de la ventana), el cursor se mantiene a la vista.
+      desplazarSiHaceFalta(aX(reproductor.currentTime));
     };
     ajustarZoom();
+
+    // Si la ventana cambia de ancho, el ancho visible del zoom ya no vale.
+    let pendienteDeResize = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(pendienteDeResize);
+      pendienteDeResize = setTimeout(ajustarZoom, 100);
+    });
 
     let notaSeleccionada = null;
     let notaPanelActual = null;
 
     const pintarPanel = (nota) => {
       if (!aside) return;
+      aside.textContent = "";
       if (!nota) {
-        aside.innerHTML = '<p class="detalle-vacio">Elige una nota en el gráfico o en la lista</p>';
+        const vacio = document.createElement("p");
+        vacio.className = "detalle-vacio";
+        vacio.textContent = "Elige una nota en el gráfico o en la lista";
+        aside.append(vacio);
         return;
       }
-      const frase = datos.frases.find(
-        (f) => nota.inicio_s >= f.inicio_s - 1e-6 && nota.inicio_s <= f.fin_s + 1e-6
-      );
-      aside.innerHTML = `
-        <p class="detalle-nombre">${nota.nombre}</p>
-        <dl>
-          <div><dt>Frase</dt><dd>${frase ? frase.indice : "?"} · nota ${nota.orden}</dd></div>
-          <div><dt>Inicio</dt><dd>${formatoTiempo(datos.desplazamiento_s + nota.inicio_s)}</dd></div>
-          <div><dt>Duración</dt><dd>${nota.duracion_s.toFixed(2)} s</dd></div>
-          <div><dt>Confianza</dt><dd>${nota.etiqueta} · ${nota.confianza.toFixed(2)}</dd></div>
-          <div><dt>Desvío</dt><dd>${nota.cents > 0 ? "+" : ""}${nota.cents} cents</dd></div>
-        </dl>
-      `;
+      const nombre = document.createElement("p");
+      nombre.className = "detalle-nombre";
+      nombre.textContent = nota.nombre;
+      const lista = document.createElement("dl");
+      const agregar = (etiquetaCampo, valor) => {
+        const fila = document.createElement("div");
+        const dt = document.createElement("dt");
+        dt.textContent = etiquetaCampo;
+        const dd = document.createElement("dd");
+        dd.textContent = valor;
+        fila.append(dt, dd);
+        lista.append(fila);
+      };
+      agregar("Frase", `${nota.frase} · nota ${nota.orden}`);
+      agregar("Inicio", formatoTiempo(datos.desplazamiento_s + nota.inicio_s));
+      agregar("Duración", `${nota.duracion_s.toFixed(2)} s`);
+      agregar("Confianza", `${nota.etiqueta} · ${nota.confianza.toFixed(2)}`);
+      agregar("Desvío", `${nota.cents > 0 ? "+" : ""}${nota.cents} cents`);
+      aside.append(nombre, lista);
     };
 
     const seleccionar = (nota) => {
@@ -188,6 +223,12 @@
       filas.forEach((f) => f.classList.toggle("seleccionada", Number(f.dataset.orden) === nota.orden));
       // Salta al inicio de la nota sin arrancar la reproducción si estaba en pausa.
       reproductor.currentTime = nota.inicio_s;
+      desplazarSiHaceFalta(aX(nota.inicio_s));
+      // Si la selección vino de una ficha, no dejarle el foco: si no, el
+      // teclado (que ignora los <button>) queda mudo hasta un clic aparte.
+      if (document.activeElement && document.activeElement.tagName === "BUTTON") {
+        document.activeElement.blur();
+      }
     };
 
     fichas.forEach((ficha) => {
@@ -207,25 +248,23 @@
       pincel.setTransform(escala, 0, 0, escala, 0, 0);
       pincel.clearRect(0, 0, anchoCss, altoCss);
 
-      altoFilaActual = (altoCss - MARGEN_V * 2) / (maximo - minimo + 1);
-
       for (let midi = minimo; midi <= maximo; midi += 1) {
         const y = aY(midi);
         const clase = ((midi % 12) + 12) % 12;
         if (ESCALA_SOL.has(clase)) {
           pincel.fillStyle = "#242832";
-          pincel.fillRect(0, y, anchoCss, altoFilaActual);
+          pincel.fillRect(0, y, anchoCss, ALTO_CARRIL);
         }
         pincel.fillStyle = "#9aa0ab";
-        pincel.font = "11px ui-monospace, monospace";
+        pincel.font = FUENTE_CARRIL;
         pincel.textBaseline = "middle";
-        pincel.fillText(nombreDeMidi(midi), 4, y + altoFilaActual / 2);
+        pincel.fillText(nombreDeMidi(midi), 4, y + ALTO_CARRIL / 2);
       }
 
       pincel.strokeStyle = "#2a2e37";
       pincel.lineWidth = 1;
       for (let midi = minimo; midi <= maximo; midi += 1) {
-        const y = aY(midi) + altoFilaActual;
+        const y = aY(midi) + ALTO_CARRIL;
         pincel.beginPath();
         pincel.moveTo(0, y);
         pincel.lineTo(anchoCss, y);
@@ -248,10 +287,7 @@
       );
 
       datos.notas.forEach((nota) => {
-        const x = aX(nota.inicio_s);
-        const y = aY(nota.midi);
-        const ancho = Math.max(2, nota.duracion_s * pps);
-        const alto = Math.max(3, altoFilaActual - 2);
+        const { x, y, ancho, alto } = cajaDeNota(nota);
         pincel.fillStyle = COLORES[nota.etiqueta] || COLORES.baja;
         pincel.globalAlpha = nota === actual || nota === notaSeleccionada ? 1 : 0.65;
         pincel.fillRect(x, y, ancho, alto);
@@ -261,10 +297,10 @@
           pincel.lineWidth = 2;
           pincel.strokeRect(x + 1, y + 1, Math.max(0, ancho - 2), Math.max(0, alto - 2));
         }
-        if (ancho >= ANCHO_MIN_NOMBRE) {
-          pincel.globalAlpha = 1;
+        pincel.globalAlpha = 1;
+        pincel.font = FUENTE_NOTA;
+        if (ancho > pincel.measureText(nota.nombre).width + HOLGURA_NOMBRE) {
           pincel.fillStyle = "#14161a";
-          pincel.font = "11px ui-monospace, monospace";
           pincel.textBaseline = "middle";
           pincel.fillText(nota.nombre, x + 3, y + alto / 2);
         }
@@ -301,13 +337,7 @@
 
       // La vista sigue al cursor durante la reproducción: si sale de lo
       // visible, se desplaza para dejarlo al 20 % del ancho visible.
-      if (!reproductor.paused) {
-        const visibleIzq = scroll.scrollLeft;
-        const visibleDer = visibleIzq + scroll.clientWidth;
-        if (x < visibleIzq || x > visibleDer) {
-          scroll.scrollLeft = Math.max(0, x - scroll.clientWidth * 0.2);
-        }
-      }
+      if (!reproductor.paused) desplazarSiHaceFalta(x);
 
       requestAnimationFrame(dibujar);
     };
@@ -318,10 +348,7 @@
       const localY = evento.clientY - caja.top;
       if (localX < MARGEN_IZQ) return; // zona de nombres de carril, no hace nada
       const notaClicada = [...datos.notas].reverse().find((nota) => {
-        const x = aX(nota.inicio_s);
-        const ancho = Math.max(2, nota.duracion_s * pps);
-        const y = aY(nota.midi);
-        const alto = Math.max(3, altoFilaActual - 2);
+        const { x, y, ancho, alto } = cajaDeNota(nota);
         return localX >= x && localX <= x + ancho && localY >= y && localY <= y + alto;
       });
       if (notaClicada) {

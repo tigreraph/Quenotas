@@ -65,4 +65,6 @@ El motor orquesta sus etapas en `motor/pipeline.py` y produce siempre la misma e
 
 ## Licencia
 
-Uso personal; sin licencia definida todavía.
+Publicado bajo la licencia MIT (ver [LICENSE](LICENSE)). Se puede usar, copiar, modificar y redistribuir, también con fines comerciales, siempre que se conserve el aviso de autoría. El software se entrega tal cual, sin garantía.
+
+Las canciones que se analicen son responsabilidad de quien las use: la descarga desde YouTube y la separación de pistas están pensadas para sacar de oído música que ya se tiene derecho a escuchar, no para redistribuirla.

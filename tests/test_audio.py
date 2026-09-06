@@ -87,7 +87,9 @@ def test_la_forma_de_onda_tiene_una_columna_por_pedido_y_va_de_0_a_1(tmp_path):
     assert len(picos) == 10
     assert all(0.0 <= p <= 1.0 for p in picos)
     assert min(picos[:5]) > 0.9          # el tono ocupa la primera mitad
-    assert max(picos[5:]) < 0.01         # el silencio, la segunda (el remuestreo deja un resto ínfimo)
+    # La columna 5 contiene el corte y el remuestreo de ffmpeg deja ahí un
+    # rizado de hasta un 3 %; el silencio se mide a partir de la siguiente.
+    assert max(picos[6:]) < 0.01
 
 
 def test_la_forma_de_onda_del_silencio_es_todo_ceros(tmp_path):

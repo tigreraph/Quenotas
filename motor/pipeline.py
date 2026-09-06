@@ -184,8 +184,8 @@ def obtener_audio(origen, cache_dir=None, titulo: str = "", progreso=None) -> Fu
             ruta=Path(ruta), titulo=titulo or titulo_remoto or "Sin título",
             fuente="youtube", referencia=referencia,
         )
-    ruta = Path(origen)
-    if not ruta.exists():
+    ruta = Path(str(origen))
+    if not str(origen).strip() or not ruta.is_file():
         raise ErrorPipeline(f"el archivo no existe: {ruta}")
     return Fuente(ruta=ruta, titulo=titulo or ruta.stem, fuente="archivo", referencia=ruta.name)
 

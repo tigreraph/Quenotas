@@ -2310,6 +2310,12 @@ Esperado: toda la suite en verde (con los lentos, si se quiere: los dos de CREPE
 
 ---
 
+## Correcciones tras la comprobación visual (2026-09-05)
+
+- `motor/pipeline.py`, `obtener_audio`: exigía solo que la ruta existiera (`Path.exists()`), y `Path("")` resuelve a `Path(".")`, el directorio actual, que existe. Una canción con `origen=""` pasaba esa comprobación y ffmpeg fallaba con "Permission denied" al intentar leer un directorio como si fuera audio. Ahora exige `Path.is_file()` y rechaza un origen vacío explícitamente.
+- Migración de datos `0003_rellenar_origen`: las canciones creadas antes de esta migración (antes del selector de frases) nunca guardaron `origen`, solo `referencia`. Se rellena `origen` a partir de `referencia` (la URL para YouTube, la ruta bajo `media/subidas/` para archivos que todavía existen en disco) para que dejen de caer en el defecto anterior al reabrirlas.
+- `web/transcripciones/views.py`, `index`: una canción de YouTube ya existente con `origen` vacío (una de las viejas, antes de aplicar la migración de datos, o si se reenvía su URL en ese estado) se reutilizaba sin corregirle el origen. Ahora, al reutilizar por URL, si `origen` está vacío se rellena con la URL enviada.
+
 ## Revisión del plan contra el diseño
 
 | Sección del diseño | Tarea |

@@ -290,3 +290,9 @@ def test_obtener_audio_avisa_si_el_archivo_no_existe(tmp_path):
     with pytest.raises(pipeline.ErrorPipeline) as error:
         obtener_audio(tmp_path / "no_existe.wav")
     assert "no existe" in str(error.value)
+
+
+def test_obtener_audio_rechaza_un_origen_vacio_o_un_directorio(tmp_path):
+    for origen in ("", tmp_path):
+        with pytest.raises(pipeline.ErrorPipeline):
+            obtener_audio(origen)

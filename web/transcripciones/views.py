@@ -44,6 +44,9 @@ def index(request):
             cancion = Cancion.objects.filter(fuente="youtube", referencia=url).first()
             if cancion is None:
                 cancion = Cancion.objects.create(titulo="", fuente="youtube", referencia=url, origen=url)
+            elif not cancion.origen:
+                Cancion.objects.filter(pk=cancion.pk).update(origen=url)
+                cancion.origen = url
         _preparar_si_hace_falta(cancion)
         return redirect("cancion", pk=cancion.pk)
 

@@ -1,3 +1,6 @@
+import importlib
+
+from django.apps import apps
 from django.test import TestCase
 
 from motor.contrato import Fragmento as FragmentoContrato
@@ -76,3 +79,17 @@ class PruebaModelos(TestCase):
         Fragmento.objects.create(cancion=self.cancion, inicio_s=90.0, fin_s=120.0)
         Fragmento.objects.create(cancion=self.cancion, inicio_s=10.0, fin_s=20.0)
         assert [f.inicio_s for f in self.cancion.frases()] == [10.0, 30.0, 90.0]
+
+    def test_la_migracion_0003_rellena_el_origen_de_las_canciones_viejas(self):
+        modulo = importlib.import_module("transcripciones.migrations.0003_rellenar_origen")
+        cancion_youtube = Cancion.objects.create(
+            titulo="Vieja", fuente="youtube", referencia="https://youtu.be/vieja", origen="",
+        )
+        cancion_archivo = Cancion.objects.create(
+            titulo="Vieja archivo", fuente="archivo", referencia="no_existe.mp3", origen="",
+        )
+        modulo.rellenar_origen(apps, None)
+        cancion_youtube.refresh_from_db()
+        cancion_archivo.refresh_from_db()
+        assert cancion_youtube.origen == cancion_youtube.referencia
+        assert cancion_archivo.origen == ""

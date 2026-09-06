@@ -70,6 +70,17 @@ class PruebaVistas(TestCase):
             self.client.post(reverse("index"), {"url": "https://youtu.be/abc"})
         lanzar.assert_called_once_with(self.cancion.pk)
 
+    def test_reutilizar_una_cancion_sin_origen_lo_rellena_con_la_url(self):
+        vieja = Cancion.objects.create(
+            titulo="Vieja", fuente="youtube", referencia="https://youtu.be/vieja",
+            origen="", estado=Cancion.ERROR,
+        )
+        with patch("transcripciones.views.trabajos.lanzar_preparacion_cancion") as lanzar:
+            self.client.post(reverse("index"), {"url": "https://youtu.be/vieja"})
+        vieja.refresh_from_db()
+        assert vieja.origen == "https://youtu.be/vieja"
+        lanzar.assert_called_once_with(vieja.pk)
+
     def test_subir_un_archivo_crea_la_cancion_con_su_ruta(self):
         with tempfile.TemporaryDirectory() as carpeta, override_settings(MEDIA_ROOT=carpeta):
             archivo = SimpleUploadedFile("ensayo.mp3", b"ID3fingido", content_type="audio/mpeg")

@@ -1108,12 +1108,16 @@ def test_parsear_tiempo_rechaza_basura():
             parsear_tiempo(texto)
 
 
+# MEDIA_ROOT temporal para toda la clase: las vistas de onda y escucha miran el
+# disco, y con el media/ real un archivo dejado por una prueba manual haría
+# pasar o fallar tests según lo que haya en la carpeta.
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="sacanotas-tests-"))
 class PruebaVistas(TestCase):
     def setUp(self):
         self.cancion = Cancion.objects.create(
             titulo="Huayno", fuente="youtube", referencia="https://youtu.be/abc",
             origen="https://youtu.be/abc", audio_original="media/origen/abc.m4a",
-            audio_escucha="media/canciones/1/escucha.m4a", duracion_s=200.0,
+            audio_escucha="media/canciones/no-existe/escucha.m4a", duracion_s=200.0,
             estado=Cancion.LISTA,
         )
         self.fragmento = Fragmento.objects.create(

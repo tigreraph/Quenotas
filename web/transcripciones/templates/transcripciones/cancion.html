@@ -1,0 +1,69 @@
+{% extends "transcripciones/base.html" %}
+{% load static %}
+{% block titulo %}{{ cancion }} · SacaNotas{% endblock %}
+{% block contenido %}
+<h1>{{ cancion }}</h1>
+
+{% if cancion.estado == "error" %}
+  <div class="error"><p>{{ cancion.mensaje }}</p></div>
+  <form method="post" action="{% url 'cancion_reintentar' cancion.pk %}">
+    {% csrf_token %}
+    <button type="submit">Reintentar</button>
+  </form>
+
+{% elif cancion.estado == "lista" %}
+  <p class="rango">Duración {{ duracion }}. Arrastra las manijas para marcar una frase, escúchala y analízala.</p>
+
+  <div id="onda"
+       data-onda="{% url 'cancion_onda' cancion.pk %}"
+       data-estado="{% url 'cancion_estado' cancion.pk %}"
+       data-escucha="{% url 'cancion_escucha' cancion.pk %}"
+       data-crear="{% url 'crear_frase' cancion.pk %}"
+       data-csrf="{{ csrf_token }}">
+    <div class="pista-onda">
+      <canvas></canvas>
+      <div class="manija manija-inicio" title="Inicio de la frase"></div>
+      <div class="manija manija-fin" title="Final de la frase"></div>
+    </div>
+    <div class="controles seleccion">
+      <label>Desde <input type="text" name="inicio" size="7"></label>
+      <label>Hasta <input type="text" name="fin" size="7"></label>
+      <span class="duracion-seleccion"></span>
+      <button type="button" class="escuchar">Escuchar la selección</button>
+    </div>
+    <audio preload="metadata"></audio>
+    <p class="aviso-seleccion"></p>
+    <div class="controles">
+      <label class="casilla">
+        <input type="checkbox" name="separar" {% if cancion.separar %}checked{% endif %}>
+        Separar la melodía de la banda (desmarca si el audio ya es solo el instrumento)
+      </label>
+    </div>
+    <button type="button" class="analizar">Analizar esta selección</button>
+  </div>
+
+  <h2>Frases de esta canción</h2>
+  <ol id="frases" class="frases">
+    {% for frase in frases %}
+      <li data-id="{{ frase.pk }}">
+        <a href="{% url 'detalle' frase.pk %}">{{ frase.inicio_s|floatformat:0 }} s a {{ frase.fin_s|floatformat:0 }} s</a>
+        <span class="estado">{{ frase.get_estado_display }}</span>
+      </li>
+    {% empty %}
+      <li class="vacio">Todavía no marcaste ninguna frase.</li>
+    {% endfor %}
+  </ol>
+  <script src="{% static 'onda.js' %}" defer></script>
+
+{% else %}
+  <p class="trabajando" id="paso">{{ cancion.paso|default:"Preparando" }}…</p>
+  <script>
+    setInterval(async () => {
+      const respuesta = await fetch("{% url 'cancion_estado' cancion.pk %}");
+      const datos = await respuesta.json();
+      document.getElementById("paso").textContent = (datos.paso || datos.estado) + "…";
+      if (["lista", "error"].includes(datos.estado)) location.reload();
+    }, 2000);
+  </script>
+{% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
 {% extends "transcripciones/base.html" %}
 {% block contenido %}
 <h1>{{ fragmento.cancion }}</h1>
-<p class="rango">Fragmento {{ rango }}</p>
+<p class="rango">Frase {{ rango }} · <a href="{% url 'cancion' fragmento.cancion.pk %}">Volver a la canción</a></p>
 
 {% if fragmento.estado == "error" %}
   <div class="error"><p>{{ fragmento.mensaje }}</p></div>
@@ -10,25 +10,17 @@
     <button type="submit">Reintentar</button>
   </form>
 
-{% elif fragmento.estado == "preparado" %}
-  <p>Escucha el recorte para confirmar que es la parte que querías.</p>
-  <audio controls src="{% url 'audio' fragmento.pk 'mezcla_wav' %}"></audio>
-  <form method="post" action="{% url 'analizar' fragmento.pk %}">
-    {% csrf_token %}
-    <button type="submit">Analizar</button>
-  </form>
-
 {% elif fragmento.estado == "listo" %}
   {% include "transcripciones/resultado.html" %}
 
 {% else %}
-  <p class="trabajando" id="paso">{{ fragmento.paso|default:"Preparando" }}…</p>
+  <p class="trabajando" id="paso">{{ fragmento.paso|default:"En cola" }}…</p>
   <script>
     setInterval(async () => {
       const respuesta = await fetch("{% url 'estado' fragmento.pk %}");
       const datos = await respuesta.json();
       document.getElementById("paso").textContent = (datos.paso || datos.estado) + "…";
-      if (["preparado", "listo", "error"].includes(datos.estado)) location.reload();
+      if (["listo", "error"].includes(datos.estado)) location.reload();
     }, 2000);
   </script>
 {% endif %}

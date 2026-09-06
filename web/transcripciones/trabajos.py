@@ -185,16 +185,6 @@ def lanzar_frase(fragmento_id: int) -> None:
     threading.Thread(target=ejecutar_frase, args=(fragmento_id,), daemon=True).start()
 
 
-# Alias provisionales: las vistas de la tarea 17 del plan anterior los usan
-# hasta que la tarea 6 de este plan las sustituya. Se eliminan entonces.
-def lanzar_preparacion(fragmento_id: int, origen: str) -> None:
-    lanzar_frase(fragmento_id)
-
-
-def lanzar_analisis(fragmento_id: int) -> None:
-    lanzar_frase(fragmento_id)
-
-
 def recuperar_huerfanos() -> int:
     """Al arrancar: lo que quedó a medias en la sesión anterior pasa a error."""
     from .models import Cancion, Fragmento

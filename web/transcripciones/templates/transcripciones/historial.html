@@ -1,19 +1,24 @@
 {% extends "transcripciones/base.html" %}
 {% block contenido %}
 <h1>Historial</h1>
-<table class="notas">
-  <thead><tr><th>Canción</th><th>Fragmento</th><th>Estado</th><th>Fecha</th></tr></thead>
-  <tbody>
-    {% for fragmento in fragmentos %}
-      <tr>
-        <td><a href="{% url 'detalle' fragmento.pk %}">{{ fragmento.cancion }}</a></td>
-        <td>{{ fragmento.inicio_s|floatformat:0 }} a {{ fragmento.fin_s|floatformat:0 }} s</td>
-        <td>{{ fragmento.get_estado_display }}</td>
-        <td>{{ fragmento.creado|date:"d/m/Y H:i" }}</td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="4">Todavía no has analizado nada.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% for cancion in canciones %}
+  <h2><a href="{% url 'cancion' cancion.pk %}">{{ cancion }}</a>
+      <span class="estado">{{ cancion.get_estado_display }} · {{ cancion.creada|date:"d/m/Y H:i" }}</span></h2>
+  <table class="notas">
+    <thead><tr><th>Frase</th><th>Estado</th><th>Fecha</th></tr></thead>
+    <tbody>
+      {% for frase in cancion.frases %}
+        <tr>
+          <td><a href="{% url 'detalle' frase.pk %}">{{ frase.inicio_s|floatformat:0 }} a {{ frase.fin_s|floatformat:0 }} s</a></td>
+          <td>{{ frase.get_estado_display }}</td>
+          <td>{{ frase.creado|date:"d/m/Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Sin frases todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% empty %}
+  <p>Todavía no has abierto ninguna canción.</p>
+{% endfor %}
 {% endblock %}

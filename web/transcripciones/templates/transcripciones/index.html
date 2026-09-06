@@ -16,28 +16,18 @@
   </label>
   <p class="separador">o</p>
   <label>Subir un archivo de audio
-    <input type="file" name="archivo" accept="audio/*,video/*">
+    <input type="file" name="archivo" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.opus,.flac,.aac,.mp4,.webm">
   </label>
-  <div class="rango">
-    <label>Desde (vacío = principio) <input type="text" name="inicio" placeholder="ejemplo: 0:30"
-                        value="{{ formulario.inicio.value|default:'' }}"></label>
-    <label>Hasta (obligatorio) <input type="text" name="fin" placeholder="ejemplo: 1:30"
-                        value="{{ formulario.fin.value|default:'' }}"></label>
-  </div>
-  <p class="ayuda">Cada fragmento puede durar hasta 3 minutos. Una canción entera se analiza por partes: primero la frase que quieres sacar.</p>
-  <label class="casilla">
-    <input type="checkbox" name="separar" {% if formulario.separar.value or not formulario.is_bound %}checked{% endif %}>
-    Separar la melodía de la banda (desmarca si el audio ya es solo el instrumento)
-  </label>
-  <button type="submit">Obtener el fragmento</button>
+  <p class="ayuda">Después vas a ver la forma de onda de la canción entera y elegir cada frase con dos manijas.</p>
+  <button type="submit">Abrir</button>
 </form>
 
 {% if recientes %}
-<h2>Últimos fragmentos</h2>
+<h2>Últimas canciones</h2>
 <ul>
-  {% for fragmento in recientes %}
-    <li><a href="{% url 'detalle' fragmento.pk %}">{{ fragmento }}</a>
-        <span class="estado">{{ fragmento.get_estado_display }}</span></li>
+  {% for cancion in recientes %}
+    <li><a href="{% url 'cancion' cancion.pk %}">{{ cancion }}</a>
+        <span class="estado">{{ cancion.get_estado_display }}</span></li>
   {% endfor %}
 </ul>
 {% endif %}

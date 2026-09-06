@@ -6,11 +6,12 @@ from django.test import TestCase
 
 from motor.contrato import Fragmento as FragmentoContrato
 from motor.contrato import Frase, Nota as NotaContrato, ParametrosAnalisis, Resultado
+from motor.pipeline import Fuente
 from transcripciones import trabajos
 from transcripciones.models import Cancion, Fragmento
 
 
-def _resultado_falso(**kwargs):
+def _resultado_falso():
     nota = NotaContrato(orden=1, nombre="G4", midi=67, inicio_s=0.1, duracion_s=0.3,
                         confianza=0.9, cents=0)
     return Resultado(
@@ -25,65 +26,103 @@ def _resultado_falso(**kwargs):
     )
 
 
+def _fuente_falsa(**kwargs):
+    return Fuente(ruta=Path("media/origen/abc.m4a"), titulo="Huayno", fuente="youtube",
+                  referencia="https://youtu.be/abc")
+
+
+def _escucha_falsa(ruta_original, directorio):
+    return Path(directorio) / "escucha.m4a", 42.5
+
+
 class PruebaTrabajos(TestCase):
     def setUp(self):
-        cancion = Cancion.objects.create(titulo="X", fuente="archivo", referencia="x.wav")
+        self.cancion = Cancion.objects.create(
+            titulo="X", fuente="archivo", referencia="x.wav", origen="media/subidas/x.wav",
+            audio_original="media/subidas/x.wav", estado=Cancion.LISTA, duracion_s=120.0,
+        )
         self.fragmento = Fragmento.objects.create(
-            cancion=cancion, origen="x.wav", inicio_s=30.0, fin_s=40.0, separar=False
+            cancion=self.cancion, inicio_s=30.0, fin_s=40.0, separar=False,
         )
 
-    def _preparado(self):
-        self.fragmento.estado = Fragmento.PREPARADO
-        self.fragmento.archivos = {"mezcla_wav": "media/x/mezcla.wav"}
-        self.fragmento.save()
+    # --- preparación de la canción ---
 
-    def test_la_preparacion_deja_el_fragmento_listo_para_escuchar(self):
-        preparar = lambda **kwargs: (Path("media/x/mezcla.wav"), _resultado_falso().fragmento)
-        with patch.object(trabajos, "_PREPARAR", preparar):
-            trabajos.ejecutar_preparacion(self.fragmento.pk, "x.wav")
-        self.fragmento.refresh_from_db()
-        assert self.fragmento.estado == Fragmento.PREPARADO
-        assert self.fragmento.archivos["mezcla_wav"].endswith("mezcla.wav")
+    def test_la_preparacion_deja_la_cancion_lista_con_audio_y_duracion(self):
+        cancion = Cancion.objects.create(titulo="", fuente="youtube",
+                                         referencia="https://youtu.be/abc", origen="https://youtu.be/abc")
+        with patch.object(trabajos, "_OBTENER", _fuente_falsa), \
+             patch.object(trabajos, "_PREPARAR_ESCUCHA", _escucha_falsa):
+            trabajos.ejecutar_preparacion_cancion(cancion.pk)
+        cancion.refresh_from_db()
+        assert cancion.estado == Cancion.LISTA
+        assert cancion.titulo == "Huayno"
+        assert cancion.audio_original.endswith("abc.m4a")
+        assert cancion.audio_escucha.endswith("escucha.m4a")
+        assert cancion.duracion_s == 42.5
+        assert cancion.paso == ""
 
-    def test_la_preparacion_pasa_la_cache_compartida_de_descargas(self):
+    def test_la_preparacion_usa_la_cache_compartida_y_la_carpeta_de_la_cancion(self):
         recibido = {}
 
-        def preparar(**kwargs):
+        def obtener(origen, **kwargs):
             recibido.update(kwargs)
-            return Path("media/x/mezcla.wav"), _resultado_falso().fragmento
+            return _fuente_falsa()
 
-        with patch.object(trabajos, "_PREPARAR", preparar):
-            trabajos.ejecutar_preparacion(self.fragmento.pk, "https://youtu.be/abc")
+        carpetas = []
+
+        def escucha(ruta_original, directorio):
+            carpetas.append(Path(directorio))
+            return Path(directorio) / "escucha.m4a", 1.0
+
+        with patch.object(trabajos, "_OBTENER", obtener), patch.object(trabajos, "_PREPARAR_ESCUCHA", escucha):
+            trabajos.ejecutar_preparacion_cancion(self.cancion.pk)
         assert recibido["cache_dir"] == trabajos.cache_descargas()
-        assert str(self.fragmento.pk) not in str(recibido["cache_dir"])
+        assert carpetas == [trabajos.directorio_cancion(self.cancion)]
+        assert str(self.cancion.pk) in str(carpetas[0])
 
-    def test_la_preparacion_guarda_el_titulo_averiguado(self):
-        preparar = lambda **kwargs: (Path("media/x/mezcla.wav"), _resultado_falso().fragmento)
-        with patch.object(trabajos, "_PREPARAR", preparar):
-            trabajos.ejecutar_preparacion(self.fragmento.pk, "https://youtu.be/abc")
+    def test_un_fallo_de_preparacion_deja_la_cancion_en_error_con_mensaje(self):
+        def revienta(origen, **kwargs):
+            raise RuntimeError("No se pudo descargar el audio del enlace")
+
+        with patch.object(trabajos, "_OBTENER", revienta):
+            trabajos.ejecutar_preparacion_cancion(self.cancion.pk)
+        self.cancion.refresh_from_db()
+        assert self.cancion.estado == Cancion.ERROR
+        assert "No se pudo descargar" in self.cancion.mensaje
+
+    # --- frases ---
+
+    def test_ejecutar_frase_recorta_desde_el_audio_de_la_cancion_y_deja_listo(self):
+        recortes = []
+
+        def recortar(entrada, salida, inicio_s, fin_s):
+            recortes.append((str(entrada), inicio_s, fin_s))
+            return Path(salida)
+
+        with patch.object(trabajos, "_RECORTAR", recortar), \
+             patch.object(trabajos, "_ANALIZAR", lambda **kwargs: _resultado_falso()):
+            trabajos.ejecutar_frase(self.fragmento.pk)
         self.fragmento.refresh_from_db()
-        assert self.fragmento.cancion.titulo == "X"
-
-    def test_un_fallo_de_preparacion_deja_error_con_mensaje(self):
-        def revienta(**kwargs):
-            raise RuntimeError("no se pudo descargar el audio")
-
-        with patch.object(trabajos, "_PREPARAR", revienta):
-            trabajos.ejecutar_preparacion(self.fragmento.pk, "https://youtu.be/abc")
-        self.fragmento.refresh_from_db()
-        assert self.fragmento.estado == Fragmento.ERROR
-        assert "no se pudo descargar" in self.fragmento.mensaje
-
-    def test_el_analisis_deja_el_fragmento_listo(self):
-        self._preparado()
-        with patch.object(trabajos, "_ANALIZAR", lambda **kwargs: _resultado_falso()):
-            trabajos.ejecutar_analisis(self.fragmento.pk)
-        self.fragmento.refresh_from_db()
+        assert recortes == [("media/subidas/x.wav", 30.0, 40.0)]
         assert self.fragmento.estado == Fragmento.LISTO
         assert self.fragmento.notas.count() == 1
 
+    def test_el_analisis_recibe_el_recorte_y_el_fragmento_del_contrato(self):
+        recibido = {}
+
+        def analizar(**kwargs):
+            recibido.update(kwargs)
+            return _resultado_falso()
+
+        with patch.object(trabajos, "_RECORTAR", lambda e, s, i, f: Path(s)), \
+             patch.object(trabajos, "_ANALIZAR", analizar):
+            trabajos.ejecutar_frase(self.fragmento.pk)
+        assert str(recibido["recorte"]).endswith("mezcla.wav")
+        assert recibido["fragmento"].inicio_s == 30.0
+        assert recibido["fragmento"].titulo == "X"
+        assert recibido["separar"] is False
+
     def test_el_progreso_se_guarda_en_el_paso(self):
-        self._preparado()
         pasos_vistos = []
 
         def analizar(**kwargs):
@@ -91,57 +130,60 @@ class PruebaTrabajos(TestCase):
             pasos_vistos.append(Fragmento.objects.get(pk=self.fragmento.pk).paso)
             return _resultado_falso()
 
-        with patch.object(trabajos, "_ANALIZAR", analizar):
-            trabajos.ejecutar_analisis(self.fragmento.pk)
+        with patch.object(trabajos, "_RECORTAR", lambda e, s, i, f: Path(s)), \
+             patch.object(trabajos, "_ANALIZAR", analizar):
+            trabajos.ejecutar_frase(self.fragmento.pk)
         assert pasos_vistos == ["Separando la pista melódica"]
 
-    def test_el_analisis_corre_con_el_semaforo_tomado(self):
-        self._preparado()
+    def test_la_frase_corre_con_el_semaforo_tomado_y_lo_devuelve(self):
         libres_durante = []
 
         def analizar(**kwargs):
             libres_durante.append(trabajos.UN_ANALISIS_A_LA_VEZ._value)
             return _resultado_falso()
 
-        with patch.object(trabajos, "_ANALIZAR", analizar):
-            trabajos.ejecutar_analisis(self.fragmento.pk)
-        assert libres_durante == [0]                       # tomado mientras analiza
-        assert trabajos.UN_ANALISIS_A_LA_VEZ._value == 1   # y devuelto al terminar
+        with patch.object(trabajos, "_RECORTAR", lambda e, s, i, f: Path(s)), \
+             patch.object(trabajos, "_ANALIZAR", analizar):
+            trabajos.ejecutar_frase(self.fragmento.pk)
+        assert libres_durante == [0]
+        assert trabajos.UN_ANALISIS_A_LA_VEZ._value == 1
 
-    def test_el_semaforo_se_devuelve_aunque_el_analisis_falle(self):
-        self._preparado()
+    def test_el_semaforo_se_devuelve_y_queda_error_si_el_recorte_falla(self):
+        def revienta(entrada, salida, inicio_s, fin_s):
+            raise RuntimeError("el rango pedido llega hasta 40.0 s pero la duración del audio es de 35.0 s")
 
-        def revienta(**kwargs):
-            raise RuntimeError("CUDA out of memory")
-
-        with patch.object(trabajos, "_ANALIZAR", revienta):
-            trabajos.ejecutar_analisis(self.fragmento.pk)
+        with patch.object(trabajos, "_RECORTAR", revienta):
+            trabajos.ejecutar_frase(self.fragmento.pk)
         assert trabajos.UN_ANALISIS_A_LA_VEZ._value == 1
         self.fragmento.refresh_from_db()
         assert self.fragmento.estado == Fragmento.ERROR
+        assert "duración del audio" in self.fragmento.mensaje
 
-    def test_recuperar_huerfanos_marca_error_los_trabajos_a_medias(self):
+    # --- recuperación ---
+
+    def test_recuperar_huerfanos_cubre_canciones_y_frases(self):
+        self.cancion.estado = Cancion.PREPARANDO
+        self.cancion.save()
         self.fragmento.estado = Fragmento.PROCESANDO
-        self.fragmento.paso = "Separando"
         self.fragmento.save()
-        otro = Fragmento.objects.create(
-            cancion=self.fragmento.cancion, origen="x.wav", inicio_s=0, fin_s=5,
-            estado=Fragmento.LISTO,
-        )
-        assert trabajos.recuperar_huerfanos() == 1
+        otra = Cancion.objects.create(titulo="Y", estado=Cancion.LISTA)
+        assert trabajos.recuperar_huerfanos() == 2
+        self.cancion.refresh_from_db()
         self.fragmento.refresh_from_db()
-        otro.refresh_from_db()
+        otra.refresh_from_db()
+        assert self.cancion.estado == Cancion.ERROR
+        assert "interrumpi" in self.cancion.mensaje
         assert self.fragmento.estado == Fragmento.ERROR
-        assert "interrumpi" in self.fragmento.mensaje
-        assert otro.estado == Fragmento.LISTO
+        assert otra.estado == Cancion.LISTA
 
     def test_el_comando_recuperar_trabajos_existe(self):
-        self.fragmento.estado = Fragmento.PREPARANDO
+        self.fragmento.estado = Fragmento.PROCESANDO
         self.fragmento.save()
         call_command("recuperar_trabajos")
         self.fragmento.refresh_from_db()
         assert self.fragmento.estado == Fragmento.ERROR
 
-    def test_el_directorio_de_trabajo_es_propio_de_cada_fragmento(self):
-        ruta = trabajos.directorio_de(self.fragmento)
-        assert str(self.fragmento.pk) in str(ruta)
+    def test_los_directorios_son_propios_de_cada_objeto(self):
+        assert str(self.fragmento.pk) in str(trabajos.directorio_de(self.fragmento))
+        assert "canciones" in str(trabajos.directorio_cancion(self.cancion))
+        assert str(self.cancion.pk) in str(trabajos.directorio_cancion(self.cancion))

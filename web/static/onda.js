@@ -206,14 +206,21 @@
     });
   };
 
+  const hayFrasesEnCurso = () =>
+    frases.some((f) => f.estado === "procesando" || f.estado === "pendiente");
+
   const refrescarFrases = async () => {
-    const respuesta = await fetch(urls.estado);
-    const datos = await respuesta.json();
-    frases = datos.frases;
-    pintarLista();
     clearTimeout(temporizador);
-    if (frases.some((f) => f.estado === "procesando" || f.estado === "pendiente")) {
-      temporizador = setTimeout(refrescarFrases, 3000);
+    try {
+      const respuesta = await fetch(urls.estado);
+      const datos = await respuesta.json();
+      frases = datos.frases;
+      pintarLista();
+    } catch (error) {
+      // Un corte de red (el teléfono perdiendo el wifi un momento) no debe
+      // parar el sondeo: se conserva la lista anterior y se reintenta.
+    } finally {
+      if (hayFrasesEnCurso()) temporizador = setTimeout(refrescarFrases, 3000);
     }
   };
 
@@ -248,9 +255,7 @@
     reproductor.src = urls.escucha;
     fijarSeleccion(0, Math.min(duracion, 30));
     pintarLista();
-    if (frases.some((f) => f.estado === "procesando" || f.estado === "pendiente")) {
-      temporizador = setTimeout(refrescarFrases, 3000);
-    }
+    if (hayFrasesEnCurso()) temporizador = setTimeout(refrescarFrases, 3000);
     window.addEventListener("resize", colocarManijas);
     requestAnimationFrame(dibujar);
   };

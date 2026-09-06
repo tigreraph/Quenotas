@@ -772,7 +772,7 @@ def ejecutar_preparacion_cancion(cancion_id: int) -> None:
     progreso = _progreso_cancion(cancion_id)
     try:
         fuente = _obtener_real()(
-            cancion.origen, cache_dir=cache_descargas(), titulo=cancion.titulo, progreso=progreso,
+            origen=cancion.origen, cache_dir=cache_descargas(), titulo=cancion.titulo, progreso=progreso,
         )
         progreso("Preparando el audio para escucharlo")
         escucha, duracion = _preparar_escucha(fuente.ruta, directorio_cancion(cancion))

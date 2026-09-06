@@ -46,8 +46,8 @@
   <ol id="frases" class="frases">
     {% for frase in frases %}
       <li data-id="{{ frase.pk }}">
-        <a href="{% url 'detalle' frase.pk %}">{{ frase.inicio_s|floatformat:0 }} s a {{ frase.fin_s|floatformat:0 }} s</a>
-        <span class="estado">{{ frase.get_estado_display }}</span>
+        <a href="{% url 'detalle' frase.pk %}">{{ frase.rango }}</a>
+        <span class="estado">{{ frase.estado }}</span>
       </li>
     {% empty %}
       <li class="vacio">Todavía no marcaste ninguna frase.</li>
@@ -57,9 +57,16 @@
 
 {% else %}
   <p class="trabajando" id="paso">{{ cancion.paso|default:"Preparando" }}…</p>
+  {% if cancion.estado == "pendiente" %}
+    <p>Esta canción quedó sin preparar. Reintenta.</p>
+    <form method="post" action="{% url 'cancion_reintentar' cancion.pk %}">
+      {% csrf_token %}
+      <button type="submit">Reintentar</button>
+    </form>
+  {% endif %}
   <script>
     setInterval(async () => {
-      const respuesta = await fetch("{% url 'cancion_estado' cancion.pk %}");
+      const respuesta = await fetch("{% url 'cancion_estado' cancion.pk %}", { cache: "no-store" });
       const datos = await respuesta.json();
       document.getElementById("paso").textContent = (datos.paso || datos.estado) + "…";
       if (["lista", "error"].includes(datos.estado)) location.reload();

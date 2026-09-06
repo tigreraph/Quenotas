@@ -24,6 +24,7 @@ _DETECTAR = detectar_afinacion
 
 AFINACION_AVISO_CENTS = 30
 CONFIANZA_MEDIA_AVISO = 0.65
+TOLERANCIA_LIMITE_S = 0.5
 
 
 class ErrorPipeline(Exception):
@@ -48,7 +49,7 @@ def analizar_recorte(
     ruta_wav = Path(ruta_wav)
 
     duracion = duracion_s(ruta_wav)
-    if duracion > config.max_fragmento_s:
+    if duracion > config.max_fragmento_s + TOLERANCIA_LIMITE_S:
         raise ErrorPipeline(
             f"el fragmento dura {duracion:.1f} s y el límite es "
             f"{config.max_fragmento_s:.1f} s. Recorta un trozo más corto."

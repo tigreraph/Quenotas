@@ -138,6 +138,38 @@ class PruebaVistas(TestCase):
         assert [f["inicio_s"] for f in datos["frases"]] == [5.0, 30.0]
         assert datos["frases"][0]["estado"] == "listo"
         assert datos["frases"][0]["url"] == reverse("detalle", args=[datos["frases"][0]["id"]])
+        assert datos["frases"][0]["reintentar"] == reverse("reintentar", args=[datos["frases"][0]["id"]])
+
+    def test_abrir_una_cancion_pendiente_con_origen_la_prepara(self):
+        vieja = Cancion.objects.create(
+            titulo="Vieja", fuente="youtube", referencia="https://youtu.be/vieja",
+            origen="https://youtu.be/vieja", estado=Cancion.PENDIENTE,
+        )
+        with patch("transcripciones.views.trabajos.lanzar_preparacion_cancion") as lanzar:
+            respuesta = self.client.get(reverse("cancion", args=[vieja.pk]))
+        lanzar.assert_called_once_with(vieja.pk)
+        assert "Preparando".encode() in respuesta.content
+
+    def test_abrir_una_cancion_pendiente_sin_origen_ofrece_reintentar(self):
+        vieja = Cancion.objects.create(
+            titulo="Vieja", fuente="youtube", referencia="https://youtu.be/vieja",
+            origen="", estado=Cancion.PENDIENTE,
+        )
+        with patch("transcripciones.views.trabajos.lanzar_preparacion_cancion") as lanzar:
+            respuesta = self.client.get(reverse("cancion", args=[vieja.pk]))
+        lanzar.assert_not_called()
+        assert reverse("cancion_reintentar", args=[vieja.pk]).encode() in respuesta.content
+
+    def test_reintentar_una_cancion_pendiente_la_prepara(self):
+        vieja = Cancion.objects.create(
+            titulo="Vieja", fuente="youtube", referencia="https://youtu.be/vieja",
+            origen="https://youtu.be/vieja", estado=Cancion.PENDIENTE,
+        )
+        with patch("transcripciones.views.trabajos.lanzar_preparacion_cancion") as lanzar:
+            self.client.post(reverse("cancion_reintentar", args=[vieja.pk]))
+        lanzar.assert_called_once_with(vieja.pk)
+        vieja.refresh_from_db()
+        assert vieja.estado == Cancion.PREPARANDO
 
     def test_la_onda_da_404_si_todavia_no_existe(self):
         respuesta = self.client.get(reverse("cancion_onda", args=[self.cancion.pk]))
@@ -203,6 +235,7 @@ class PruebaVistas(TestCase):
             dict(inicio_s="0", fin_s="190"),      # más de 180 s
             dict(inicio_s="150", fin_s="210"),    # más allá de la duración (200)
             dict(inicio_s="abc", fin_s="10"),     # basura
+            dict(inicio_s="-5", fin_s="10"),      # inicio negativo
         ]
         with patch("transcripciones.views.trabajos.lanzar_frase") as lanzar:
             for campos in casos:

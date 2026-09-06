@@ -7,7 +7,6 @@
 
   const urls = raiz.dataset;
   const canvas = raiz.querySelector("canvas");
-  const pista = raiz.querySelector(".pista-onda");
   const manijas = {
     inicio: raiz.querySelector(".manija-inicio"),
     fin: raiz.querySelector(".manija-fin"),
@@ -38,6 +37,8 @@
   let seleccion = { inicio: 0, fin: 0 };
   let escuchando = false;
   let temporizador = null;
+  let dibujoPendiente = false;
+  let sondeando = false;
 
   const formatoTiempo = (segundos) => {
     const decimas = Math.round(Math.max(0, segundos) * 10);
@@ -116,7 +117,16 @@
     pincel.lineTo(x, alto);
     pincel.stroke();
 
-    requestAnimationFrame(dibujar);
+    if (!reproductor.paused || arrastrando) requestAnimationFrame(dibujar);
+  };
+
+  const programarDibujo = () => {
+    if (dibujoPendiente) return;
+    dibujoPendiente = true;
+    requestAnimationFrame(() => {
+      dibujoPendiente = false;
+      dibujar();
+    });
   };
 
   const fijarSeleccion = (inicio, fin) => {
@@ -124,22 +134,29 @@
     if (seleccion.inicio > seleccion.fin) seleccion = { inicio: seleccion.fin, fin: seleccion.inicio };
     colocarManijas();
     validar();
+    programarDibujo();
   };
 
   // Manijas: eventos de puntero, así funcionan con el ratón y con el dedo.
+  let arrastrando = null;
   Object.entries(manijas).forEach(([nombre, manija]) => {
     manija.addEventListener("pointerdown", (evento) => {
       manija.setPointerCapture(evento.pointerId);
       manija.classList.add("activa");
+      arrastrando = nombre;
     });
     manija.addEventListener("pointermove", (evento) => {
-      if (!manija.classList.contains("activa")) return;
+      if (!manija.classList.contains("activa") || !arrastrando) return;
       const caja = canvas.getBoundingClientRect();
       const segundos = aSegundos(limitar(evento.clientX - caja.left, 0, caja.width));
-      if (nombre === "inicio") fijarSeleccion(segundos, seleccion.fin);
-      else fijarSeleccion(seleccion.inicio, segundos);
+      const otro = arrastrando === "inicio" ? seleccion.fin : seleccion.inicio;
+      // Si el borde arrastrado cruza al otro, pasa a ser el otro borde.
+      if (arrastrando === "inicio" && segundos > otro) arrastrando = "fin";
+      else if (arrastrando === "fin" && segundos < otro) arrastrando = "inicio";
+      fijarSeleccion(Math.min(segundos, otro), Math.max(segundos, otro));
+      programarDibujo();
     });
-    const soltar = () => manija.classList.remove("activa");
+    const soltar = () => { manija.classList.remove("activa"); arrastrando = null; };
     manija.addEventListener("pointerup", soltar);
     manija.addEventListener("pointercancel", soltar);
   });
@@ -171,11 +188,16 @@
   });
   reproductor.addEventListener("timeupdate", () => {
     if (escuchando && reproductor.currentTime >= seleccion.fin) reproductor.pause();
+    programarDibujo();
   });
-  reproductor.addEventListener("pause", () => {
+  const restaurarBotonEscuchar = () => {
     escuchando = false;
     botonEscuchar.textContent = "Escuchar la selección";
-  });
+  };
+  reproductor.addEventListener("pause", restaurarBotonEscuchar);
+  reproductor.addEventListener("ended", restaurarBotonEscuchar);
+  reproductor.addEventListener("play", () => programarDibujo());
+  reproductor.addEventListener("seeked", () => programarDibujo());
 
   const pintarLista = () => {
     lista.innerHTML = "";
@@ -184,6 +206,7 @@
       vacio.className = "vacio";
       vacio.textContent = "Todavía no marcaste ninguna frase.";
       lista.append(vacio);
+      programarDibujo();
       return;
     }
     frases.forEach((frase) => {
@@ -202,17 +225,31 @@
         mensaje.textContent = ` · ${frase.mensaje}`;
         item.append(mensaje);
       }
+      if (frase.estado === "error") {
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "reintentar";
+        boton.textContent = "Reintentar";
+        boton.addEventListener("click", async () => {
+          await fetch(frase.reintentar, { method: "POST", headers: { "X-CSRFToken": urls.csrf } });
+          await refrescarFrases();
+        });
+        item.append(boton);
+      }
       lista.append(item);
     });
+    programarDibujo();
   };
 
   const hayFrasesEnCurso = () =>
     frases.some((f) => f.estado === "procesando" || f.estado === "pendiente");
 
   const refrescarFrases = async () => {
+    if (sondeando) return;
+    sondeando = true;
     clearTimeout(temporizador);
     try {
-      const respuesta = await fetch(urls.estado);
+      const respuesta = await fetch(urls.estado, { cache: "no-store" });
       const datos = await respuesta.json();
       frases = datos.frases;
       pintarLista();
@@ -220,6 +257,7 @@
       // Un corte de red (el teléfono perdiendo el wifi un momento) no debe
       // parar el sondeo: se conserva la lista anterior y se reintenta.
     } finally {
+      sondeando = false;
       if (hayFrasesEnCurso()) temporizador = setTimeout(refrescarFrases, 3000);
     }
   };
@@ -246,8 +284,8 @@
   });
 
   const arrancar = async () => {
-    const estado = await (await fetch(urls.estado)).json();
-    const onda = await (await fetch(urls.onda)).json();
+    const estado = await (await fetch(urls.estado, { cache: "no-store" })).json();
+    const onda = await (await fetch(urls.onda, { cache: "no-store" })).json();
     duracion = onda.duracion_s || estado.duracion_s || 0;
     maximo = estado.max_fragmento_s || 180;
     picos = onda.picos || [];
@@ -256,8 +294,11 @@
     fijarSeleccion(0, Math.min(duracion, 30));
     pintarLista();
     if (hayFrasesEnCurso()) temporizador = setTimeout(refrescarFrases, 3000);
-    window.addEventListener("resize", colocarManijas);
-    requestAnimationFrame(dibujar);
+    window.addEventListener("resize", () => {
+      colocarManijas();
+      programarDibujo();
+    });
+    programarDibujo();
   };
 
   arrancar().catch(() => {

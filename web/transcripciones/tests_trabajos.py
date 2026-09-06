@@ -61,6 +61,18 @@ class PruebaTrabajos(TestCase):
         assert cancion.duracion_s == 42.5
         assert cancion.paso == ""
 
+    def test_la_preparacion_de_la_cancion_corre_fuera_del_semaforo(self):
+        valores = []
+
+        def obtener(origen, **kwargs):
+            valores.append(trabajos.UN_ANALISIS_A_LA_VEZ._value)
+            return _fuente_falsa()
+
+        with patch.object(trabajos, "_OBTENER", obtener), \
+             patch.object(trabajos, "_PREPARAR_ESCUCHA", _escucha_falsa):
+            trabajos.ejecutar_preparacion_cancion(self.cancion.pk)
+        assert valores == [1]
+
     def test_la_preparacion_usa_la_cache_compartida_y_la_carpeta_de_la_cancion(self):
         recibido = {}
 

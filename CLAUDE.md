@@ -29,7 +29,7 @@ Implementado (plan base de 20 tareas más el selector de frases sobre la forma d
 
 Entorno ya verificado en esta máquina: Python 3.14.7 global (`py`), ffmpeg y ffprobe 9.0 en el PATH, git 2.55, RTX 3050 Laptop con 4 GB de VRAM. Todas las dependencias tienen rueda para Python 3.14.
 
-`media/fragmentos/` crece con cada análisis y nadie lo limpia todavía; si el disco se llena, borrar a mano las carpetas de fragmentos viejos. Si el teléfono es un iPhone, Safari puede exigir soporte de `Range` para reproducir el audio; en ese caso la tarea 21 (OGG o vista con `Range`) pasa de opcional a necesaria.
+`media/fragmentos/` crece con cada análisis y nadie lo limpia todavía; si el disco se llena, borrar a mano las carpetas de fragmentos viejos. Si el teléfono es un iPhone, Safari puede exigir soporte de `Range` para reproducir el audio; ya está atendido (`transcripciones/audio_http.py`).
 
 ## Cómo se prueba
 

@@ -17,7 +17,7 @@
   <p class="trabajando" id="paso">{{ fragmento.paso|default:"En cola" }}…</p>
   <script>
     setInterval(async () => {
-      const respuesta = await fetch("{% url 'estado' fragmento.pk %}");
+      const respuesta = await fetch("{% url 'estado' fragmento.pk %}", { cache: "no-store" });
       const datos = await respuesta.json();
       document.getElementById("paso").textContent = (datos.paso || datos.estado) + "…";
       if (["listo", "error"].includes(datos.estado)) location.reload();

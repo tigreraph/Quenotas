@@ -61,7 +61,7 @@ h2.frase.en-bucle::after { content: "  (en bucle, clic para parar)"; color: var(
 .estado { color: var(--tenue); font-size: 0.85rem; }
 .limitacion { color: var(--tenue); font-size: 0.9rem; }
 
-.pista-onda { position: relative; margin: 1rem 0 0.5rem; touch-action: none; }
+.pista-onda { position: relative; margin: 1rem 0 0.5rem; touch-action: pan-y; }
 .pista-onda canvas { width: 100%; height: 160px; background: var(--panel); border-radius: 8px; display: block; }
 .manija {
   position: absolute; top: 0; bottom: 0; width: 24px; margin-left: -12px;
@@ -88,4 +88,6 @@ ol.frases a { color: var(--acento); }
 .estado-listo { color: var(--alta); }
 .estado-procesando { color: var(--media); }
 .estado-error { color: var(--baja); }
+.estado-pendiente { color: var(--tenue); }
 .mensaje-error { color: var(--tenue); }
+ol.frases button.reintentar { margin: 0 0 0 0.5rem; padding: 0.15rem 0.6rem; font-size: 0.85rem; }

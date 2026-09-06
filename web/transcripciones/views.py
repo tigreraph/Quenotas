@@ -75,9 +75,19 @@ def _preparar_si_hace_falta(cancion):
 
 def cancion(request, pk):
     cancion = get_object_or_404(Cancion, pk=pk)
+    if cancion.estado == Cancion.PENDIENTE and cancion.origen:
+        _preparar_si_hace_falta(cancion)
+        cancion.refresh_from_db()
     return render(request, "transcripciones/cancion.html", {
         "cancion": cancion,
-        "frases": cancion.frases(),
+        "frases": [
+            {
+                "pk": f.pk,
+                "rango": f"{formato_tiempo(f.inicio_s)} a {formato_tiempo(f.fin_s)}",
+                "estado": f.get_estado_display(),
+            }
+            for f in cancion.frases()
+        ],
         "duracion": formato_tiempo(cancion.duracion_s or 0),
     })
 
@@ -92,6 +102,7 @@ def _frase_a_dict(fragmento):
         "paso": fragmento.paso,
         "mensaje": fragmento.mensaje,
         "url": reverse("detalle", args=[fragmento.pk]),
+        "reintentar": reverse("reintentar", args=[fragmento.pk]),
     }
 
 
@@ -146,6 +157,8 @@ def crear_frase(request, pk):
         fin = _leer_tiempo(request.POST.get("fin_s"))
     except ValueError as error:
         return JsonResponse({"error": str(error)}, status=400)
+    if inicio < 0:
+        return JsonResponse({"error": "El inicio no puede ser negativo."}, status=400)
     limite = Config.desde_entorno().max_fragmento_s
     if fin <= inicio:
         return JsonResponse({"error": "El final debe ser posterior al inicio."}, status=400)
@@ -169,9 +182,9 @@ def crear_frase(request, pk):
 @require_POST
 def cancion_reintentar(request, pk):
     cancion = get_object_or_404(Cancion, pk=pk)
-    actualizados = Cancion.objects.filter(pk=pk, estado=Cancion.ERROR).update(
-        estado=Cancion.PREPARANDO, paso="Preparando", mensaje=""
-    )
+    actualizados = Cancion.objects.filter(
+        pk=pk, estado__in=[Cancion.ERROR, Cancion.PENDIENTE]
+    ).update(estado=Cancion.PREPARANDO, paso="Preparando", mensaje="")
     if actualizados:
         trabajos.lanzar_preparacion_cancion(cancion.pk)
     return redirect("cancion", pk=pk)
